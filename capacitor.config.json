@@ -1,9 +1,0 @@
-{
-  "appId": "com.carraro.gestorpro",
-  "appName": "GestorPro",
-  "webDir": "www",
-  "bundledWebRuntime": false,
-  "server": {
-    "androidScheme": "https"
-  }
-}
