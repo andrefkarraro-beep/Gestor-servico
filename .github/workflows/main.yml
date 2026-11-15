@@ -1,0 +1,40 @@
+name: Construir
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  construir:
+    runs-on: ubuntu-24.04 # Atualizado para uma versão estável recomendada (evitando avisos futuros do ubuntu-latest)
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar o Java
+        uses: actions/setup-java@v5 # Atualizado para a versão v5 (eliminando o aviso de obsolescência da v4)
+        with:
+          distribution: 'temurin'
+          java-version: '17' # Ajuste para a versão do Java que o seu projeto utiliza
+
+      - name: Configurar o Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Mantido ou atualizado conforme sua preferência, mas rodando de forma compatível
+
+      - name: Executar Build / Testes
+        run: |
+          # Adicione aqui os comandos de build do seu projeto (ex: npm install, mvn clean install, etc.)
+          echo "Executando build..."
+
+      - name: Salvar Artefatos
+        uses: actions/upload-artifact@v4
+        with:
+          name: artefato-build
+          path: |
+            # Caminho dos arquivos gerados pelo build
+            dist/
+            build/
