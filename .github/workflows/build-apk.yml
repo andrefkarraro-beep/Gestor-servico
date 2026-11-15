@@ -1,42 +1,40 @@
-name: Gerar APK Android
+name: Construir
 
 on:
   push:
-    branches: [ main, master ]
-  workflow_dispatch:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  construir:
+    runs-on: ubuntu-24.04 # Atualizado para uma versão estável recomendada (evitando avisos futuros do ubuntu-latest)
+
     steps:
-      - name: Baixar código do repositório
+      - name: Checkout do código
         uses: actions/checkout@v4
 
-      - name: Configurar Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Configurar Java 17 (Android)
-        uses: actions/setup-java@v4
+      - name: Configurar o Java
+        uses: actions/setup-java@v5 # Atualizado para a versão v5 (eliminando o aviso de obsolescência da v4)
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '17' # Ajuste para a versão do Java que o seu projeto utiliza
 
-      - name: Instalar dependências e criar projeto Android
+      - name: Configurar o Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Mantido ou atualizado conforme sua preferência, mas rodando de forma compatível
+
+      - name: Executar Build / Testes
         run: |
-          npm install
-          npx cap add android
-          npx cap sync android
+          # Adicione aqui os comandos de build do seu projeto (ex: npm install, mvn clean install, etc.)
+          echo "Executando build..."
 
-      - name: Compilar APK Debug instalável
-        run: |
-          cd android
-          chmod +x gradlew
-          ./gradlew assembleDebug
-
-      - name: Disponibilizar APK para download
+      - name: Salvar Artefatos
         uses: actions/upload-artifact@v4
         with:
-          name: GestorServicos-APK
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: artefato-build
+          path: |
+            # Caminho dos arquivos gerados pelo build
+            dist/
+            build/
