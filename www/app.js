@@ -44,6 +44,18 @@ document.addEventListener('DOMContentLoaded', () => {
     inicializarCanvasAssinatura();
 });
 
+// Chave da API do Gemini embutida diretamente no código
+function carregarApiKeySalva() {
+    const chaveEmbutida = "AQ.Ab8RN6Ke6abHD4WeYVhvdsHO-YIbnj3R8lDjryhhTu_-9y7snA";
+    if (!localStorage.getItem('gemini_api_key')) {
+        localStorage.setItem('gemini_api_key', chaveEmbutida);
+    }
+    const inputKey = document.getElementById('input-api-key');
+    if (inputKey) {
+        inputKey.value = localStorage.getItem('gemini_api_key') || chaveEmbutida;
+    }
+}
+
 // Inicialização do Quadro de Assinatura do Técnico
 function inicializarCanvasAssinatura() {
     canvasAssinatura = document.getElementById('canvas-assinatura');
@@ -97,14 +109,7 @@ function mudarAba(abaId) {
     document.getElementById(`aba-${abaId}`).classList.remove('hidden');
 
     ['orcamento', 'agenda', 'materiais', 'mao-obra', 'ia', 'config'].forEach(id => {
-        const btn = document.getElementById(`nav-btn-${id}`);
-        if(btn) {
-            btn.classList.remove('text-amber-400');
-            btn.classList.add('text-slate-400');
-        }
-    });
-
-    const ativoBtn = document.getElementById(`nav-btn-${abaId}`);
+        const btn = document.getElementById(`nav-btn-${id}`); if(btn) { btn.classList.remove('text-amber-400'); btn.classList.add('text-slate-400'); } });  const ativoBtn = document.getElementById(`nav-btn-${abaId}`);
     if(ativoBtn) {
         ativoBtn.classList.remove('text-slate-400');
         ativoBtn.classList.add('text-amber-400');
@@ -152,35 +157,37 @@ function carregarDadosEmpresaNaTela() {
 
 // Renderização dos Catálogos Separados
 function carregarCatalogosNaTela() {
-    // Materiais
     const containerMat = document.getElementById('catalogo-materiais');
-    containerMat.innerHTML = '';
-    catalogoMateriais.forEach((item, index) => {
-        containerMat.innerHTML += `
-            <div onclick="adicionarDoCatalogoMateriais(${index})" class="bg-slate-900 border border-slate-700/60 p-3 rounded-xl flex justify-between items-center active:border-amber-500 transition cursor-pointer">
-                <div>
-                    <p class="text-sm font-medium text-slate-200">${item.desc}</p>
-                    <p class="text-xs text-amber-400 font-bold">R$ ${item.valor.toFixed(2).replace('.', ',')}</p>
+    if (containerMat) {
+        containerMat.innerHTML = '';
+        catalogoMateriais.forEach((item, index) => {
+            containerMat.innerHTML += `
+                <div onclick="adicionarDoCatalogoMateriais(${index})" class="bg-slate-900 border border-slate-700/60 p-3 rounded-xl flex justify-between items-center active:border-amber-500 transition cursor-pointer">
+                    <div>
+                        <p class="text-sm font-medium text-slate-200">${item.desc}</p>
+                        <p class="text-xs text-amber-400 font-bold">R$ ${item.valor.toFixed(2).replace('.', ',')}</p>
+                    </div>
+                    <button class="bg-slate-800 text-amber-400 p-2 rounded-lg text-xs"><i class="fa-solid fa-plus"></i></button>
                 </div>
-                <button class="bg-slate-800 text-amber-400 p-2 rounded-lg text-xs"><i class="fa-solid fa-plus"></i></button>
-            </div>
-        `;
-    });
+            `;
+        });
+    }
 
-    // Mão de Obra
     const containerMao = document.getElementById('catalogo-mao-obra');
-    containerMao.innerHTML = '';
-    catalogoMaoObra.forEach((item, index) => {
-        containerMao.innerHTML += `
-            <div onclick="adicionarDoCatalogoMaoObra(${index})" class="bg-slate-900 border border-slate-700/60 p-3 rounded-xl flex justify-between items-center active:border-amber-500 transition cursor-pointer">
-                <div>
-                    <p class="text-sm font-medium text-slate-200">${item.desc}</p>
-                    <p class="text-xs text-amber-400 font-bold">R$ ${item.valor.toFixed(2).replace('.', ',')}</p>
+    if (containerMao) {
+        containerMao.innerHTML = '';
+        catalogoMaoObra.forEach((item, index) => {
+            containerMao.innerHTML += `
+                <div onclick="adicionarDoCatalogoMaoObra(${index})" class="bg-slate-900 border border-slate-700/60 p-3 rounded-xl flex justify-between items-center active:border-amber-500 transition cursor-pointer">
+                    <div>
+                        <p class="text-sm font-medium text-slate-200">${item.desc}</p>
+                        <p class="text-xs text-amber-400 font-bold">R$ ${item.valor.toFixed(2).replace('.', ',')}</p>
+                    </div>
+                    <button class="bg-slate-800 text-amber-400 p-2 rounded-lg text-xs"><i class="fa-solid fa-plus"></i></button>
                 </div>
-                <button class="bg-slate-800 text-amber-400 p-2 rounded-lg text-xs"><i class="fa-solid fa-plus"></i></button>
-            </div>
-        `;
-    });
+            `;
+        });
+    }
 }
 
 function carregarSelectsModal() {
@@ -203,7 +210,7 @@ function selecionarMaterialModal() {
     const select = document.getElementById('modal-select-materiais');
     const index = select.value;
     if (index === "") return;
-    document.getElementById('modal-select-mao-obra').value = ""; // limpa o outro select
+    document.getElementById('modal-select-mao-obra').value = "";
     const item = catalogoMateriais[index];
     document.getElementById('modal-desc').value = item.desc;
     document.getElementById('modal-valor').value = item.valor;
@@ -214,7 +221,7 @@ function selecionarMaoObraModal() {
     const select = document.getElementById('modal-select-mao-obra');
     const index = select.value;
     if (index === "") return;
-    document.getElementById('modal-select-materiais').value = ""; // limpa o outro select
+    document.getElementById('modal-select-materiais').value = "";
     const item = catalogoMaoObra[index];
     document.getElementById('modal-desc').value = item.desc;
     document.getElementById('modal-valor').value = item.valor;
@@ -305,16 +312,7 @@ function atualizarTabelaOrcamento() {
     let totalFinal = subtotalGeral - descontoCalculado;
     if (totalFinal < 0) totalFinal = 0;
 
-    document.getElementById('subtotal-geral').innerText = `R$ ${subtotalGeral.toFixed(2).replace('.', ',')}`;
-    document.getElementById('desconto-geral').innerText = `- R$ ${descontoCalculado.toFixed(2).replace('.', ',')}`;
-    document.getElementById('total-geral').innerText = `R$ ${totalFinal.toFixed(2).replace('.', ',')}`;
-}
-
-// Agenda e Serviços
-function mudarFiltroAgenda(filtro) {
-    filtroAtualAgenda = filtro;
-    ['agenda', 'espera', 'executados'].forEach(f => {
-        const btn = document.getElementById(`filtro-btn-${f}`);
+    document.getElementById('subtotal-geral').innerText = `R$ ${subtotalGeral.toFixed(2).replace('.', ',')}`; document.getElementById('desconto-geral').innerText = `- R$ ${descontoCalculado.toFixed(2).replace('.', ',')}`; document.getElementById('total-geral').innerText = `R$ ${totalFinal.toFixed(2).replace('.', ',')}`; }  // Agenda e Serviços function mudarFiltroAgenda(filtro) { filtroAtualAgenda = filtro; ['agenda', 'espera', 'executados'].forEach(f => { const btn = document.getElementById(`filtro-btn-${f}`);
         if(f === filtro) {
             btn.className = "flex-1 py-2 rounded-md bg-amber-500 text-slate-900 transition font-bold";
         } else {
@@ -359,6 +357,7 @@ function removerCompromisso(id) {
 
 function renderizarCompromissos() {
     const container = document.getElementById('lista-compromissos');
+    if (!container) return;
     container.innerHTML = '';
     const filtrados = compromissos.filter(c => c.status === filtroAtualAgenda);
 
@@ -438,7 +437,7 @@ function criarElementoDocumentoParaRender() {
         <div style="font-family: Arial, sans-serif;">
             ${logoHtml}
             <h2 style="color: #d97706; margin: 0 0 5px 0; font-size: 18px;">${empNome}</h2>
-            <p style="font-size: 11px; color: #555; margin: 0;">CNPJ/CPF: ${empDoc} | Fone: ${empFone}</p>
+            <p style="font-size: 11px; color: #555; margin: 0;">CNPJ/CPF: ${empDoc} \vert{} Fone:${empFone}</p>
             <hr style="border: 1px solid #d97706; margin: 10px 0;">
             <div style="background: #f3f4f6; padding: 8px; border-radius: 6px; display: flex; justify-content: space-between;">
                 <h3 style="margin: 0; font-size: 14px; color: #1e293b;">${tipoDoc}</h3>
@@ -453,303 +452,4 @@ function criarElementoDocumentoParaRender() {
                         <th style="padding: 6px; text-align:left;">Descrição</th>
                         <th style="padding: 6px; text-align:center;">Qtd</th>
                         <th style="padding: 6px; text-align:right;">Unit.</th>
-                        <th style="padding: 6px; text-align:right;">Total</th>
-                    </tr>
-                </thead>
-                <tbody>${htmlItens}</tbody>
-            </table>
-            
-            <div style="margin-top: 15px; text-align: right; font-size: 12px;">
-                <p style="margin: 2px 0;">Subtotal: R$ ${subtotal.toFixed(2)}</p>
-                <p style="margin: 2px 0; color: #dc2626;">Desconto: - R$ ${descCalc.toFixed(2)}</p>
-                <h3 style="margin: 5px 0; color: #1e293b; font-size: 14px;">TOTAL: R$ ${totalFinal.toFixed(2)}</h3>
-                <p style="margin: 5px 0; font-size: 11px; color: #333;">Forma de Pagamento: <strong>${formaPagto}</strong></p>
-            </div>
-
-            ${qrHtml}
-
-            <!-- CAMPO COM AS DUAS ASSINATURAS NO RODAPÉ -->
-            <div style="margin-top: 40px; display: flex; justify-content: space-between;">
-                <div style="text-align: center; width: 45%;">
-                    <div style="height: 40px; margin-bottom: 2px;">
-                        <img src="${assinaturaTecnicoImg}" style="max-height: 40px; max-width: 150px;">
-                    </div>
-                    <div style="border-top: 1px solid #333; padding-top: 4px;">
-                        <p style="font-size: 10px; margin: 0; font-weight: bold;">Assinatura do Técnico</p>
-                    </div>
-                </div>
-                <div style="text-align: center; width: 45%;">
-                    <div style="height: 40px; margin-bottom: 2px;"></div>
-                    <div style="border-top: 1px solid #333; padding-top: 4px;">
-                        <p style="font-size: 10px; margin: 0; font-weight: bold;">Assinatura do Cliente</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-
-    return containerDoc;
-}
-
-function salvarDocumentoArquivo(tipo) {
-    if (itensOrcamento.length === 0) {
-        alert("Adicione pelo menos um item ao documento.");
-        return;
-    }
-    const nome = document.getElementById('cli-nome').value || "Cliente";
-    const container = criarElementoDocumentoParaRender();
-    document.body.appendChild(container);
-
-    html2canvas(container, { scale: 2, useCORS: true }).then(canvas => {
-        document.body.removeChild(container);
-        
-        if (tipo === 'img') {
-            const link = document.createElement('a');
-            link.download = `Documento_${nome.replace(/\s+/g, '_')}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            alert("Sucesso! Imagem salva no seu dispositivo.");
-        } else {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const imgData = canvas.toDataURL('image/png');
-            pdf.addImage(imgData, 'PNG', 10, 10, 190, (canvas.height * 190) / canvas.width);
-            pdf.save(`Documento_${nome.replace(/\s+/g, '_')}.pdf`);
-            alert("Sucesso! PDF salvo no seu dispositivo.");
-        }
-    }).catch(err => {
-        document.body.removeChild(container);
-        alert("Erro ao gerar o arquivo.");
-    });
-}
-
-function abrirModalCompartilharWhatsApp() {
-    if (itensOrcamento.length === 0) {
-        alert("Adicione pelo menos um item ao documento.");
-        return;
-    }
-    document.getElementById('modal-whatsapp').classList.remove('hidden');
-    document.getElementById('modal-whatsapp').classList.add('flex');
-}
-
-function fecharModalWhatsApp() {
-    document.getElementById('modal-whatsapp').classList.remove('flex');
-    document.getElementById('modal-whatsapp').classList.add('hidden');
-}
-
-function enviarWhatsAppTexto() {
-    fecharModalWhatsApp();
-    const fone = document.getElementById('cli-fone').value.replace(/\D/g, '');
-    const nome = document.getElementById('cli-nome').value || "Cliente";
-    const tipoDoc = document.getElementById('doc-tipo').value;
-    let subtotal = itensOrcamento.reduce((acc, i) => acc + (i.qtd * i.valor), 0);
-    
-    let texto = `Olá *${nome}*, segue o resumo do seu *${tipoDoc}*:\n\n`;
-    itensOrcamento.forEach(i => {
-        texto += `• ${i.desc} (${i.qtd}x) - R$ ${(i.qtd * i.valor).toFixed(2)}\n`;
-    });
-    texto += `\n*TOTAL: R$ ${subtotal.toFixed(2)}*\nGerado via Gestor Serviços.`;
-
-    const url = `https://api.whatsapp.com/send?phone=${fone}&text=${encodeURIComponent(texto)}`;
-    window.open(url, '_blank');
-}
-
-async function enviarDiretoWhatsApp(tipo) {
-    fecharModalWhatsApp();
-    if (itensOrcamento.length === 0) {
-        alert("Adicione pelo menos um item ao documento.");
-        return;
-    }
-
-    const nomeCliente = document.getElementById('cli-nome').value || "Cliente";
-    const container = criarElementoDocumentoParaRender();
-    document.body.appendChild(container);
-
-    html2canvas(container, { scale: 2, useCORS: true }).then(async canvas => {
-        document.body.removeChild(container);
-
-        try {
-            if (tipo === 'img') {
-                const base64Data = canvas.toDataURL('image/png');
-                const fileName = `Documento_${nomeCliente.replace(/\s+/g, '_')}.png`;
-
-                if (window.Capacitor && window.Capacitor.Plugins.Share) {
-                    const savedFile = await window.Capacitor.Plugins.Filesystem.writeFile({
-                        path: fileName,
-                        data: base64Data,
-                        directory: 'CACHE'
-                    });
-
-                    await window.Capacitor.Plugins.Share.share({
-                        title: 'Enviar Imagem',
-                        text: `Olá ${nomeCliente}, segue o documento em imagem.`,
-                        url: savedFile.uri,
-                        dialogTitle: 'Enviar para o WhatsApp'
-                    });
-                } else {
-                    const link = document.createElement('a');
-                    link.download = fileName;
-                    link.href = base64Data;
-                    link.click();
-                    alert("Imagem baixada para envio.");
-                }
-            } else {
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgData = canvas.toDataURL('image/png');
-                pdf.addImage(imgData, 'PNG', 10, 10, 190, (canvas.height * 190) / canvas.width);
-                
-                const pdfOutput = pdf.output('datauristring');
-                const fileName = `Documento_${nomeCliente.replace(/\s+/g, '_')}.pdf`;
-
-                if (window.Capacitor && window.Capacitor.Plugins.Share) {
-                    const savedFile = await window.Capacitor.Plugins.Filesystem.writeFile({
-                        path: fileName,
-                        data: pdfOutput,
-                        directory: 'CACHE'
-                    });
-
-                    await window.Capacitor.Plugins.Share.share({
-                        title: 'Enviar PDF',
-                        text: `Olá ${nomeCliente}, segue o documento em PDF.`,
-                        url: savedFile.uri,
-                        dialogTitle: 'Enviar para o WhatsApp'
-                    });
-                } else {
-                    pdf.save(fileName);
-                    alert("PDF gerado com sucesso!");
-                }
-            }
-        } catch (error) {
-            console.error("Erro no compartilhamento:", error);
-            alert("Não foi possível disparar o compartilhamento automático.");
-        }
-    }).catch(err => {
-        document.body.removeChild(container);
-        alert("Erro ao processar a prévia do documento.");
-    });
-}
-
-// Envio Direto por E-mail com PDF Anexado Nativamente
-async function compartilharEmail() {
-    if (itensOrcamento.length === 0) {
-        alert("Adicione pelo menos um item ao documento.");
-        return;
-    }
-
-    const nomeCliente = document.getElementById('cli-nome').value || "Cliente";
-    const tipoDoc = document.getElementById('doc-tipo').value;
-    let subtotal = 0;
-    itensOrcamento.forEach(i => subtotal += (i.qtd * i.valor));
-    
-    const descTipo = document.getElementById('desc-tipo').value;
-    const descValInput = parseFloat(document.getElementById('desc-valor').value) || 0;
-    let descCalc = descTipo === 'rs' ? descValInput : (subtotal * descValInput) / 100;
-    let totalFinal = subtotal - descCalc;
-    if (totalFinal < 0) totalFinal = 0;
-
-    const container = criarElementoDocumentoParaRender();
-    document.body.appendChild(container);
-
-    html2canvas(container, { scale: 2, useCORS: true }).then(async canvas => {
-        document.body.removeChild(container);
-
-        try {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const imgData = canvas.toDataURL('image/png');
-            pdf.addImage(imgData, 'PNG', 10, 10, 190, (canvas.height * 190) / canvas.width);
-            
-            const pdfOutput = pdf.output('datauristring');
-            const fileName = `Documento_${nomeCliente.replace(/\s+/g, '_')}.pdf`;
-
-            if (window.Capacitor && window.Capacitor.Plugins.Share) {
-                const savedFile = await window.Capacitor.Plugins.Filesystem.writeFile({
-                    path: fileName,
-                    data: pdfOutput,
-                    directory: 'CACHE'
-                });
-
-                await window.Capacitor.Plugins.Share.share({
-                    title: `${tipoDoc} - ${nomeCliente}`,
-                    text: `Olá ${nomeCliente},\n\nSegue em anexo o ${tipoDoc.toLowerCase()} no valor de R$ ${totalFinal.toFixed(2)}.\n\nAtenciosamente,\nGestor Serviços.`,
-                    url: savedFile.uri,
-                    dialogTitle: 'Enviar por E-mail'
-                });
-            } else {
-                pdf.save(fileName);
-                alert("PDF gerado com sucesso!");
-            }
-        } catch (error) {
-            console.error("Erro no envio por e-mail:", error);
-            alert("Não foi possível anexar o arquivo automaticamente.");
-        }
-    }).catch(err => {
-        document.body.removeChild(container);
-        alert("Erro ao processar o documento para e-mail.");
-    });
-}
-
-function salvarApiKey() {
-    const key = document.getElementById('input-api-key').value.trim();
-    if (!key) return alert("Insira uma chave válida.");
-    localStorage.setItem('gemini_api_key', key);
-    alert("Chave salva com sucesso!");
-}
-
-function carregarApiKeySalva() {
-    const key = localStorage.getItem('gemini_api_key');
-    if (key) document.getElementById('input-api-key-key').value = key;
-}
-
-function limparChat() {
-    document.getElementById('chat-mensagens').innerHTML = `
-        <div class="bg-slate-800 p-3 rounded-xl max-w-[85%] border border-slate-700">
-            <p class="text-xs text-slate-300">Histórico limpo. Como posso ajudar?</p>
-        </div>
-    `;
-}
-
-async function enviarMensagemIA() {
-    const input = document.getElementById('chat-input');
-    const msg = input.value.trim();
-    const apiKey = localStorage.getItem('gemini_api_key');
-
-    if (!msg) return;
-    if (!apiKey) {
-        alert("Configure sua chave de API na aba Empresa.");
-        mudarAba('config');
-        return;
-    }
-
-    const chatDiv = document.getElementById('chat-mensagens');
-    chatDiv.innerHTML += `<div class="flex justify-end"><div class="bg-amber-500 text-slate-900 p-3 rounded-xl max-w-[85%] text-xs font-medium"><p>${msg}</p></div></div>`;
-    input.value = '';
-    chatDiv.scrollTop = chatDiv.scrollHeight;
-
-    const loadingId = 'loading-' + Date.now();
-    chatDiv.innerHTML += `<div id="${loadingId}" class="flex justify-start"><div class="bg-slate-800 text-slate-400 p-3 rounded-xl text-xs italic border border-slate-700">Consultando IA...</div></div>`;
-    chatDiv.scrollTop = chatDiv.scrollHeight;
-
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: "Você é um assistente técnico especialista em elétrica (NBR 5410) e precificação. Responda direto: " + msg }] }]
-            })
-        });
-
-        const data = await response.json();
-        const loadingElem = document.getElementById(loadingId);
-        if (loadingElem) loadingElem.remove();
-        
-        const respostaTexto = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sem resposta.";
-        chatDiv.innerHTML += `<div class="flex justify-start"><div class="bg-slate-800 text-slate-200 p-3 rounded-xl max-w-[85%] text-xs border border-slate-700 leading-relaxed">${respostaTexto.replace(/\n/g, '<br>')}</div></div>`;
-    } catch (error) {
-        const loadingElem = document.getElementById(loadingId);
-        if (loadingElem) loadingElem.remove();
-        chatDiv.innerHTML += `<div class="flex justify-start"><div class="bg-red-900/50 text-red-200 p-3 rounded-xl max-w-[85%] text-xs border border-red-700">Erro ao conectar com a IA.</div></div>`;
-    }
-    chatDiv.scrollTop = chatDiv.scrollHeight;
-}
+                        <th style="padding: 
