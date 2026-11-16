@@ -185,18 +185,29 @@
             </div>
         </div>
 
-        <!-- ABA 3: CATÁLOGO DE ELÉTRICA -->
-        <div id="aba-catalogo" class="space-y-4 tab-content hidden">
+        <!-- ABA 3: CATÁLOGO DE MATERIAIS -->
+        <div id="aba-materiais" class="space-y-4 tab-content hidden">
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm">
                 <h2 class="text-sm font-semibold text-amber-400 mb-3 uppercase tracking-wider flex items-center">
-                    <i class="fa-solid fa-book-open mr-2"></i> Tabela Padrão Elétrica & Materiais
+                    <i class="fa-solid fa-box-open mr-2"></i> Catálogo de Materiais Elétricos
                 </h2>
                 <p class="text-xs text-slate-400 mb-3">Toque em qualquer item para adicioná-lo ao orçamento:</p>
-                <div class="space-y-2" id="catalogo-padrao"></div>
+                <div class="space-y-2" id="catalogo-materiais"></div>
             </div>
         </div>
 
-        <!-- ABA 4: IA ASSISTENTE -->
+        <!-- ABA 4: CATÁLOGO DE MÃO DE OBRA -->
+        <div id="aba-mao-obra" class="space-y-4 tab-content hidden">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm">
+                <h2 class="text-sm font-semibold text-amber-400 mb-3 uppercase tracking-wider flex items-center">
+                    <i class="fa-solid fa-user-gear mr-2"></i> Catálogo de Mão de Obra
+                </h2>
+                <p class="text-xs text-slate-400 mb-3">Toque em qualquer serviço para adicioná-lo ao orçamento:</p>
+                <div class="space-y-2" id="catalogo-mao-obra"></div>
+            </div>
+        </div>
+
+        <!-- ABA 5: IA ASSISTENTE -->
         <div id="aba-ia" class="flex flex-col h-[calc(100vh-160px)] tab-content hidden">
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 mb-2 flex justify-between items-center">
                 <span class="text-xs text-slate-300"><i class="fa-solid fa-robot text-amber-400 mr-1"></i> Assistente IA de Preços & Normas</span>
@@ -215,7 +226,7 @@
             </div>
         </div>
 
-        <!-- ABA 5: CONFIGURAÇÕES E EMPRESA -->
+        <!-- ABA 6: CONFIGURAÇÕES E EMPRESA -->
         <div id="aba-config" class="space-y-4 tab-content hidden">
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
                 <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center">
@@ -223,7 +234,7 @@
                 </h2>
                 <div>
                     <label class="text-xs text-slate-400 block mb-1">Nome da Empresa / Profissional</label>
-                    <input type="text" id="emp-nome" placeholder="Ex: Carrara Instalações Elétricas" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
+                    <input type="text" id="emp-nome" placeholder="Ex: André Carraro Instalações" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
@@ -271,14 +282,29 @@
         </div>
     </main>
 
-    <!-- MODAL ADICIONAR ITEM -->
+    <!-- MODAL ADICIONAR ITEM COM OPÇÃO DOS DOIS CATÁLOGOS -->
     <div id="modal-item" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
         <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
-            <h3 class="font-bold text-base text-amber-400">Adicionar Serviço ou Material</h3>
+            <h3 class="font-bold text-base text-amber-400">Adicionar Material ou Mão de Obra</h3>
+            
             <div class="space-y-3">
                 <div>
+                    <label class="text-xs text-slate-400 block mb-1">Selecionar do Catálogo de Materiais</label>
+                    <select id="modal-select-materiais" onchange="selecionarMaterialModal()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-amber-400 focus:outline-none focus:border-amber-500">
+                        <option value="">-- Escolher material --</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Selecionar do Catálogo de Mão de Obra</label>
+                    <select id="modal-select-mao-obra" onchange="selecionarMaoObraModal()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-amber-400 focus:outline-none focus:border-amber-500">
+                        <option value="">-- Escolher serviço --</option>
+                    </select>
+                </div>
+
+                <div>
                     <label class="text-xs text-slate-400 block mb-1">Descrição</label>
-                    <input type="text" id="modal-desc" placeholder="Ex: Instalação de Quadro Elétrico" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
+                    <input type="text" id="modal-desc" placeholder="Ex: Cabo Flexível 4mm² (metro)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                     <div>
@@ -359,9 +385,13 @@
             <i class="fa-solid fa-calendar-days text-lg"></i>
             <span class="text-[10px] mt-1 font-medium">Agenda</span>
         </button>
-        <button onclick="mudarAba('catalogo')" id="nav-btn-catalogo" class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition">
-            <i class="fa-solid fa-bolt text-lg"></i>
-            <span class="text-[10px] mt-1 font-medium">Elétrica</span>
+        <button onclick="mudarAba('materiais')" id="nav-btn-materiais" class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition">
+            <i class="fa-solid fa-box-open text-lg"></i>
+            <span class="text-[10px] mt-1 font-medium">Materiais</span>
+        </button>
+        <button onclick="mudarAba('mao-obra')" id="nav-btn-mao-obra" class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition">
+            <i class="fa-solid fa-user-gear text-lg"></i>
+            <span class="text-[10px] mt-1 font-medium">Mão Obra</span>
         </button>
         <button onclick="mudarAba('ia')" id="nav-btn-ia" class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition">
             <i class="fa-solid fa-robot text-lg"></i>
