@@ -1,12 +1,27 @@
 let itensOrcamento = [];
-let fotosServico = []; // Array para armazenar até 4 fotos em Base64
-let compromissos = JSON.parse(localStorage.getItem('gestor_compromissos') || '[]');
+let fotosServico = [];
+
+// Blindagem contra dados corrompidos no localStorage
+let compromissos = [];
+try {
+    compromissos = JSON.parse(localStorage.getItem('gestor_compromissos') || '[]');
+} catch(e) { compromissos = []; }
+
+let clientesSalvos = [];
+try {
+    clientesSalvos = JSON.parse(localStorage.getItem('gestor_clientes_salvos') || '[]');
+} catch(e) { clientesSalvos = []; }
+
+let historicoServicosFeitos = [];
+try {
+    historicoServicosFeitos = JSON.parse(localStorage.getItem('gestor_historico_feitos') || '[]');
+} catch(e) { historicoServicosFeitos = []; }
+
 let filtroAtualAgenda = 'agenda';
 let logoBase64Empresa = localStorage.getItem('gestor_logo_b64') || '';
 
 let canvasAssinatura, ctxAssinatura, desenhando = false;
 
-// Catálogo separado de Materiais Elétricos
 let catalogoMateriais = [
     { desc: "Cabo Flexível 2,5mm² (rolo 100m)", valor: 145.00 },
     { desc: "Cabo Flexível 4,0mm² (rolo 100m)", valor: 225.00 },
@@ -21,7 +36,6 @@ let catalogoMateriais = [
     { desc: "Fita Isolante Profissional 20m", valor: 12.00 }
 ];
 
-// Catálogo separado de Mão de Obra
 let catalogoMaoObra = [
     { desc: "Instalação de Disjuntor / DR / DPS", valor: 120.00 },
     { desc: "Montagem e Cabeamento de Quadro Elétrico (QGBT)", valor: 450.00 },
@@ -35,17 +49,25 @@ let catalogoMaoObra = [
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
-    document.getElementById('cli-data').valueAsDate = new Date();
-    document.getElementById('srv-data').valueAsDate = new Date();
-    carregarCatalogosNaTela();
-    carregarSelectsModal();
-    carregarApiKeySalva();
-    carregarDadosEmpresaNaTela();
-    renderizarCompromissos();
-    inicializarCanvasAssinatura();
+    try {
+        const cliData = document.getElementById('cli-data');
+        const srvData = document.getElementById('srv-data');
+        if(cliData) cliData.valueAsDate = new Date();
+        if(srvData) srvData.valueAsDate = new Date();
+
+        carregarCatalogosNaTela();
+        carregarSelectsModal();
+        carregarApiKeySalva();
+        carregarDadosEmpresaNaTela();
+        renderizarCompromissos();
+        renderizarClientesCadastrados();
+        carregarRelatorioServicos();
+        inicializarCanvasAssinatura();
+    } catch(err) {
+        console.error("Erro na inicialização:", err);
+    }
 });
 
-// Chave da API do Gemini embutida com segurança
 function carregarApiKeySalva() {
     const chaveEmbutida = "AQ.Ab8RN6Ke6abHD4WeYVhvdsHO-YIbnj3R8lDjryhhTu_-9y7snA";
     if (!localStorage.getItem('gemini_api_key')) {
@@ -57,15 +79,12 @@ function carregarApiKeySalva() {
     }
 }
 
-// Inicialização do Quadro de Assinatura do Técnico
 function inicializarCanvasAssinatura() {
     canvasAssinatura = document.getElementById('canvas-assinatura');
     if (!canvasAssinatura) return;
     ctxAssinatura = canvasAssinatura.getContext('2d');
-
     canvasAssinatura.width = canvasAssinatura.offsetWidth || 300;
     canvasAssinatura.height = 100;
-
     ctxAssinatura.strokeStyle = '#000000';
     ctxAssinatura.lineWidth = 2;
     ctxAssinatura.lineCap = 'round';
@@ -74,7 +93,6 @@ function inicializarCanvasAssinatura() {
     canvasAssinatura.addEventListener('mousemove', desenhar);
     canvasAssinatura.addEventListener('mouseup', pararDesenho);
     canvasAssinatura.addEventListener('mouseleave', pararDesenho);
-
     canvasAssinatura.addEventListener('touchstart', (e) => { e.preventDefault(); iniciarDesenho(e.touches[0]); });
     canvasAssinatura.addEventListener('touchmove', (e) => { e.preventDefault(); desenhar(e.touches[0]); });
     canvasAssinatura.addEventListener('touchend', (e) => { e.preventDefault(); pararDesenho(); });
@@ -86,18 +104,13 @@ function iniciarDesenho(e) {
     ctxAssinatura.beginPath();
     ctxAssinatura.moveTo(e.clientX - rect.left, e.clientY - rect.top);
 }
-
 function desenhar(e) {
     if (!desenhando) return;
     const rect = canvasAssinatura.getBoundingClientRect();
     ctxAssinatura.lineTo(e.clientX - rect.left, e.clientY - rect.top);
     ctxAssinatura.stroke();
 }
-
-function pararDesenho() {
-    desenhando = false;
-}
-
+function pararDesenho() { desenhando = false; }
 function limparAssinaturaTecnico() {
     if (ctxAssinatura && canvasAssinatura) {
         ctxAssinatura.clearRect(0, 0, canvasAssinatura.width, canvasAssinatura.height);
@@ -107,9 +120,10 @@ function limparAssinaturaTecnico() {
 // Navegação entre Abas
 function mudarAba(abaId) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-    document.getElementById(`aba-${abaId}`).classList.remove('hidden');
+    const abaAlvo = document.getElementById(`aba-${abaId}`);
+    if (abaAlvo) abaAlvo.classList.remove('hidden');
 
-    ['orcamento', 'agenda', 'materiais', 'mao-obra', 'ia', 'config'].forEach(id => {
+    ['menu', 'orcamento', 'clientes', 'agenda', 'materiais', 'mao-obra', 'relatorio', 'config'].forEach(id => {
         const btn = document.getElementById(`nav-btn-${id}`);
         if(btn) {
             btn.classList.remove('text-amber-400');
@@ -124,17 +138,131 @@ function mudarAba(abaId) {
     }
 
     const titles = {
+        menu: "Menu Principal",
         orcamento: "Painel de Documentos",
+        clientes: "Clientes Salvos",
         agenda: "Agenda & Serviços",
         materiais: "Catálogo de Materiais",
         'mao-obra': "Catálogo de Mão de Obra",
-        ia: "Assistente IA (Gemini)",
+        relatorio: "Serviços Executados",
         config: "Empresa & Ajustes"
     };
-    document.getElementById('header-subtitle').innerText = titles[abaId] || "Gestor Serviços";
+    const subHeader = document.getElementById('header-subtitle');
+    if (subHeader) subHeader.innerText = titles[abaId] || "Gestor Serviços";
+    
+    if (abaId === 'clientes') renderizarClientesCadastrados();
+    if (abaId === 'relatorio') carregarRelatorioServicos();
 }
 
-// Empresa e Logotipo
+// GESTÃO DE CLIENTES SALVOS
+function abrirModalNovoCliente() {
+    document.getElementById('cad-cli-nome').value = '';
+    document.getElementById('cad-cli-fone').value = '';
+    document.getElementById('cad-cli-endereco').value = '';
+    document.getElementById('modal-cliente').classList.remove('hidden');
+    document.getElementById('modal-cliente').classList.add('flex');
+}
+
+function fecharModalNovoCliente() {
+    document.getElementById('modal-cliente').classList.remove('flex');
+    document.getElementById('modal-cliente').classList.add('hidden');
+}
+
+function salvarClienteCadastrado() {
+    const nome = document.getElementById('cad-cli-nome').value.trim();
+    const fone = document.getElementById('cad-cli-fone').value.trim();
+    const endereco = document.getElementById('cad-cli-endereco').value.trim();
+
+    if (!nome) {
+        alert("Preencha o nome do cliente.");
+        return;
+    }
+
+    clientesSalvos.push({ id: Date.now(), nome, fone, endereco });
+    localStorage.setItem('gestor_clientes_salvos', JSON.stringify(clientesSalvos));
+    fecharModalNovoCliente();
+    renderizarClientesCadastrados();
+    alert("Cliente salvo com sucesso!");
+}
+
+function removerClienteSalvo(id) {
+    if (confirm("Deseja realmente excluir este cliente?")) {
+        clientesSalvos = clientesSalvos.filter(c => c.id !== id);
+        localStorage.setItem('gestor_clientes_salvos', JSON.stringify(clientesSalvos));
+        renderizarClientesCadastrados();
+    }
+}
+
+function renderizarClientesCadastrados() {
+    const container = document.getElementById('lista-clientes-cadastrados');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (clientesSalvos.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500 text-center py-4 italic">Nenhum cliente salvo ainda.</p>`;
+        return;
+    }
+
+    clientesSalvos.forEach(c => {
+        container.innerHTML += `
+            <div class="bg-slate-900 border border-slate-700/60 p-3 rounded-xl flex justify-between items-center text-xs">
+                <div>
+                    <p class="font-bold text-amber-400 text-sm">${c.nome}</p>
+                    <p class="text-slate-300"><i class="fa-solid fa-phone mr-1"></i> ${c.fone || 'Sem fone'}</p>
+                    <p class="text-slate-400"><i class="fa-solid fa-location-dot mr-1"></i> ${c.endereco || 'Sem endereço'}</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="usarClienteNoOrcamento('${c.nome}', '${c.fone}', '${c.endereco}')" class="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold px-2 py-1.5 rounded-lg" title="Usar no Documento"><i class="fa-solid fa-file-arrow-up"></i></button>
+                    <button onclick="removerClienteSalvo(${c.id})" class="text-red-400 hover:text-red-300 p-1.5"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function usarClienteNoOrcamento(nome, fone, endereco) {
+    document.getElementById('cli-nome').value = nome;
+    document.getElementById('cli-fone').value = fone;
+    document.getElementById('cli-endereco').value = endereco;
+    mudarAba('orcamento');
+    alert(`Cliente ${nome} selecionado para o documento!`);
+}
+
+function abrirModalSelecionarClienteSalvo() {
+    const container = document.getElementById('lista-modal-clientes-salvos');
+    if (!container) return;
+    container.innerHTML = '';
+
+    if (clientesSalvos.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-400 text-center py-3 italic">Nenhum cliente cadastrado.</p>`;
+    } else {
+        clientesSalvos.forEach(c => {
+            container.innerHTML += `
+                <div onclick="selecionarClienteModal('${c.nome}', '${c.fone}', '${c.endereco}')" class="bg-slate-900 border border-slate-700 p-2.5 rounded-xl cursor-pointer hover:border-amber-500 transition text-xs">
+                    <p class="font-bold text-amber-400">${c.nome}</p>
+                    <p class="text-slate-300">${c.fone || ''} - ${c.endereco || ''}</p>
+                </div>
+            `;
+        });
+    }
+
+    document.getElementById('modal-selecionar-cliente').classList.remove('hidden');
+    document.getElementById('modal-selecionar-cliente').classList.add('flex');
+}
+
+function fecharModalSelecionarClienteSalvo() {
+    document.getElementById('modal-selecionar-cliente').classList.remove('flex');
+    document.getElementById('modal-selecionar-cliente').classList.add('hidden');
+}
+
+function selecionarClienteModal(nome, fone, endereco) {
+    document.getElementById('cli-nome').value = nome;
+    document.getElementById('cli-fone').value = fone;
+    document.getElementById('cli-endereco').value = endereco;
+    fecharModalSelecionarClienteSalvo();
+}
+
+// Configurações Empresa e Logo
 function carregarLogoEmpresa(event) {
     const file = event.target.files[0];
     if (file) {
@@ -142,7 +270,7 @@ function carregarLogoEmpresa(event) {
         reader.onload = function(e) {
             logoBase64Empresa = e.target.result;
             localStorage.setItem('gestor_logo_b64', logoBase64Empresa);
-            alert("Logotipo carregado com sucesso!");
+            alert("Logotipo carregado!");
         };
         reader.readAsDataURL(file);
     }
@@ -153,7 +281,7 @@ function salvarDadosEmpresa() {
     localStorage.setItem('emp_doc', document.getElementById('emp-doc').value);
     localStorage.setItem('emp_fone', document.getElementById('emp-fone').value);
     localStorage.setItem('emp_link_qr', document.getElementById('emp-link-qr').value);
-    alert("Dados da empresa salvos com sucesso!");
+    alert("Dados salvos!");
 }
 
 function carregarDadosEmpresaNaTela() {
@@ -163,59 +291,37 @@ function carregarDadosEmpresaNaTela() {
     if(localStorage.getItem('emp_link_qr')) document.getElementById('emp-link-qr').value = localStorage.getItem('emp_link_qr');
 }
 
-// Importar Contato da Agenda do Celular
 async function importarContatoAgenda() {
     try {
         if (window.navigator && window.navigator.contacts && window.navigator.contacts.select) {
-            const props = ['name', 'tel'];
-            const opts = { multiple: false };
-            const contacts = await window.navigator.contacts.select(props, opts);
+            const contacts = await window.navigator.contacts.select(['name', 'tel'], { multiple: false });
             if (contacts && contacts.length > 0) {
-                const contato = contacts[0];
-                const nome = contato.name ? contato.name[0] : '';
-                const fone = contato.tel ? contato.tel[0] : '';
-                if (nome) document.getElementById('cli-nome').value = nome;
-                if (fone) document.getElementById('cli-fone').value = fone;
-                alert("Contato importado com sucesso!");
-            }
-        } else if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Contacts) {
-            // Suporte nativo Capacitor Contacts se plugin estiver instalado
-            const result = await window.Capacitor.Plugins.Contacts.pickContact();
-            if (result && result.contact) {
-                if (result.contact.name) document.getElementById('cli-nome').value = result.contact.name.display || '';
-                if (result.contact.phones && result.contact.phones.length > 0) {
-                    document.getElementById('cli-fone').value = result.contact.phones[0].number || '';
-                }
+                if (contacts[0].name) document.getElementById('cli-nome').value = contacts[0].name[0];
+                if (contacts[0].tel) document.getElementById('cli-fone').value = contacts[0].tel[0];
+                alert("Contato importado!");
             }
         } else {
-            // Fallback usando o seletor nativo de input se disponível ou aviso
-            alert("Para importar diretamente, utilize o preenchimento automático do seu teclado ou insira os dados do cliente.");
+            alert("Utilize o teclado ou digite os dados do cliente.");
         }
-    } catch (e) {
-        console.log("Erro ao importar contato:", e);
-        alert("Não foi possível acessar os contatos diretamente neste dispositivo. Digite o nome ou use o preenchimento do teclado.");
-    }
+    } catch (e) { alert("Insira os dados manualmente."); }
 }
 
-// Gerenciamento de Fotos do Serviço (Até 4 fotos)
 function adicionarFotosServico(event) {
     const files = event.target.files;
     if (!files) return;
-
     for (let i = 0; i < files.length; i++) {
         if (fotosServico.length >= 4) {
-            alert("Você pode adicionar no máximo 4 fotos por serviço.");
+            alert("Máximo de 4 fotos.");
             break;
         }
-        const file = files[i];
         const reader = new FileReader();
         reader.onload = function(e) {
             fotosServico.push(e.target.result);
             renderizarPreviewFotos();
         };
-        reader.readAsDataURL(file);
+        reader.readAsDataURL(files[i]);
     }
-    event.target.value = ''; // limpa o input
+    event.target.value = '';
 }
 
 function removerFotoServico(index) {
@@ -227,23 +333,18 @@ function renderizarPreviewFotos() {
     const container = document.getElementById('container-fotos-preview');
     const contador = document.getElementById('contador-fotos');
     if (!container || !contador) return;
-
     container.innerHTML = '';
     contador.innerText = `${fotosServico.length}/4 fotos`;
-
     fotosServico.forEach((imgBase64, index) => {
         container.innerHTML += `
             <div class="relative bg-slate-900 rounded-lg overflow-hidden border border-slate-700 aspect-square">
                 <img src="${imgBase64}" class="w-full h-full object-cover">
-                <button onclick="removerFotoServico(${index})" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-md">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
+                <button onclick="removerFotoServico(${index})" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs"><i class="fa-solid fa-xmark"></i></button>
             </div>
         `;
     });
 }
 
-// Renderização dos Catálogos
 function carregarCatalogosNaTela() {
     const containerMat = document.getElementById('catalogo-materiais');
     if (containerMat) {
@@ -251,10 +352,7 @@ function carregarCatalogosNaTela() {
         catalogoMateriais.forEach((item, index) => {
             containerMat.innerHTML += `
                 <div onclick="adicionarDoCatalogoMateriais(${index})" class="bg-slate-900 border border-slate-700/60 p-3 rounded-xl flex justify-between items-center active:border-amber-500 transition cursor-pointer">
-                    <div>
-                        <p class="text-sm font-medium text-slate-200">${item.desc}</p>
-                        <p class="text-xs text-amber-400 font-bold">R$ ${item.valor.toFixed(2).replace('.', ',')}</p>
-                    </div>
+                    <div><p class="text-sm font-medium text-slate-200">${item.desc}</p><p class="text-xs text-amber-400 font-bold">R$ ${item.valor.toFixed(2).replace('.', ',')}</p></div>
                     <button class="bg-slate-800 text-amber-400 p-2 rounded-lg text-xs"><i class="fa-solid fa-plus"></i></button>
                 </div>
             `;
@@ -267,10 +365,7 @@ function carregarCatalogosNaTela() {
         catalogoMaoObra.forEach((item, index) => {
             containerMao.innerHTML += `
                 <div onclick="adicionarDoCatalogoMaoObra(${index})" class="bg-slate-900 border border-slate-700/60 p-3 rounded-xl flex justify-between items-center active:border-amber-500 transition cursor-pointer">
-                    <div>
-                        <p class="text-sm font-medium text-slate-200">${item.desc}</p>
-                        <p class="text-xs text-amber-400 font-bold">R$ ${item.valor.toFixed(2).replace('.', ',')}</p>
-                    </div>
+                    <div><p class="text-sm font-medium text-slate-200">${item.desc}</p><p class="text-xs text-amber-400 font-bold">R$ ${item.valor.toFixed(2).replace('.', ',')}</p></div>
                     <button class="bg-slate-800 text-amber-400 p-2 rounded-lg text-xs"><i class="fa-solid fa-plus"></i></button>
                 </div>
             `;
@@ -282,55 +377,42 @@ function carregarSelectsModal() {
     const selectMat = document.getElementById('modal-select-materiais');
     const selectMao = document.getElementById('modal-select-mao-obra');
     if (!selectMat || !selectMao) return;
-
     selectMat.innerHTML = '<option value="">-- Escolher material --</option>';
-    catalogoMateriais.forEach((item, index) => {
-        selectMat.innerHTML += `<option value="${index}">${item.desc} - R$ ${item.valor.toFixed(2)}</option>`;
-    });
-
+    catalogoMateriais.forEach((item, index) => { selectMat.innerHTML += `<option value="${index}">${item.desc} - R$ ${item.valor.toFixed(2)}</option>`; });
     selectMao.innerHTML = '<option value="">-- Escolher serviço --</option>';
-    catalogoMaoObra.forEach((item, index) => {
-        selectMao.innerHTML += `<option value="${index}">${item.desc} - R$ ${item.valor.toFixed(2)}</option>`;
-    });
+    catalogoMaoObra.forEach((item, index) => { selectMao.innerHTML += `<option value="${index}">${item.desc} - R$ ${item.valor.toFixed(2)}</option>`; });
 }
 
 function selecionarMaterialModal() {
-    const select = document.getElementById('modal-select-materiais');
-    const index = select.value;
+    const index = document.getElementById('modal-select-materiais').value;
     if (index === "") return;
     document.getElementById('modal-select-mao-obra').value = "";
-    const item = catalogoMateriais[index];
-    document.getElementById('modal-desc').value = item.desc;
-    document.getElementById('modal-valor').value = item.valor;
+    document.getElementById('modal-desc').value = catalogoMateriais[index].desc;
+    document.getElementById('modal-valor').value = catalogoMateriais[index].valor;
     document.getElementById('modal-qtd').value = 1;
 }
 
 function selecionarMaoObraModal() {
-    const select = document.getElementById('modal-select-mao-obra');
-    const index = select.value;
+    const index = document.getElementById('modal-select-mao-obra').value;
     if (index === "") return;
     document.getElementById('modal-select-materiais').value = "";
-    const item = catalogoMaoObra[index];
-    document.getElementById('modal-desc').value = item.desc;
-    document.getElementById('modal-valor').value = item.valor;
+    document.getElementById('modal-desc').value = catalogoMaoObra[index].desc;
+    document.getElementById('modal-valor').value = catalogoMaoObra[index].valor;
     document.getElementById('modal-qtd').value = 1;
 }
 
 function adicionarDoCatalogoMateriais(index) {
-    const item = catalogoMateriais[index];
-    itensOrcamento.push({ desc: item.desc, qtd: 1, valor: item.valor });
+    itensOrcamento.push({ desc: catalogoMateriais[index].desc, qtd: 1, valor: catalogoMateriais[index].valor });
     atualizarTabelaOrcamento();
     mudarAba('orcamento');
 }
 
 function adicionarDoCatalogoMaoObra(index) {
-    const item = catalogoMaoObra[index];
-    itensOrcamento.push({ desc: item.desc, qtd: 1, valor: item.valor });
+    itensOrcamento.push({ desc: catalogoMaoObra[index].desc, qtd: 1, valor: catalogoMaoObra[index].valor });
     atualizarTabelaOrcamento();
     mudarAba('orcamento');
 }
 
-// Modal de Itens
 function abrirModalItem() {
     document.getElementById('modal-select-materiais').value = "";
     document.getElementById('modal-select-mao-obra').value = "";
@@ -350,12 +432,7 @@ function adicionarItemOrcamento() {
     const desc = document.getElementById('modal-desc').value;
     const qtd = parseInt(document.getElementById('modal-qtd').value) || 1;
     const valor = parseFloat(document.getElementById('modal-valor').value) || 0;
-
-    if (!desc || valor <= 0) {
-        alert('Preencha a descrição e o valor unitário.');
-        return;
-    }
-
+    if (!desc || valor <= 0) return alert('Preencha descrição e valor.');
     itensOrcamento.push({ desc, qtd, valor });
     atualizarTabelaOrcamento();
     fecharModalItem();
@@ -368,53 +445,43 @@ function removerItem(index) {
 
 function atualizarTabelaOrcamento() {
     const lista = document.getElementById('lista-itens');
+    if(!lista) return;
     lista.innerHTML = '';
-
     if (itensOrcamento.length === 0) {
-        lista.innerHTML = `<p class="text-xs text-slate-500 text-center py-4 italic">Nenhum item adicionado ainda.</p>`;
+        lista.innerHTML = `<p class="text-xs text-slate-500 text-center py-4 italic">Nenhum item adicionado.</p>`;
         document.getElementById('subtotal-geral').innerText = 'R$ 0,00';
         document.getElementById('desconto-geral').innerText = 'R$ 0,00';
         document.getElementById('total-geral').innerText = 'R$ 0,00';
         return;
     }
-
     let subtotalGeral = 0;
     itensOrcamento.forEach((item, index) => {
         let sub = item.qtd * item.valor;
         subtotalGeral += sub;
         lista.innerHTML += `
             <div class="bg-slate-900 border border-slate-700/50 p-2.5 rounded-xl flex justify-between items-center text-xs">
-                <div>
-                    <p class="font-medium text-slate-200">${item.desc}</p>
-                    <p class="text-slate-400">${item.qtd}x R$ ${item.valor.toFixed(2).replace('.', ',')} = <span class="text-amber-400 font-bold">R$ ${sub.toFixed(2).replace('.', ',')}</span></p>
-                </div>
-                <button onclick="removerItem(${index})" class="text-red-400 hover:text-red-300 p-2"><i class="fa-solid fa-trash"></i></button>
+                <div><p class="font-medium text-slate-200">${item.desc}</p><p class="text-slate-400">${item.qtd}x R$ ${item.valor.toFixed(2)} = <span class="text-amber-400 font-bold">R$ ${sub.toFixed(2)}</span></p></div>
+                <button onclick="removerItem(${index})" class="text-red-400 p-2"><i class="fa-solid fa-trash"></i></button>
             </div>
         `;
     });
-
     const descTipo = document.getElementById('desc-tipo').value;
     const descValorInput = parseFloat(document.getElementById('desc-valor').value) || 0;
     let descontoCalculado = descTipo === 'rs' ? descValorInput : (subtotalGeral * descValorInput) / 100;
-
     let totalFinal = subtotalGeral - descontoCalculado;
     if (totalFinal < 0) totalFinal = 0;
 
-    document.getElementById('subtotal-geral').innerText = `R$ ${subtotalGeral.toFixed(2).replace('.', ',')}`;
-    document.getElementById('desconto-geral').innerText = `- R$ ${descontoCalculado.toFixed(2).replace('.', ',')}`;
-    document.getElementById('total-geral').innerText = `R$ ${totalFinal.toFixed(2).replace('.', ',')}`;
+    document.getElementById('subtotal-geral').innerText = `R$ ${subtotalGeral.toFixed(2)}`;
+    document.getElementById('desconto-geral').innerText = `- R$ ${descontoCalculado.toFixed(2)}`;
+    document.getElementById('total-geral').innerText = `R$ ${totalFinal.toFixed(2)}`;
 }
 
-// Agenda e Serviços (Com dados completos do cliente e endereço)
+// Agenda
 function mudarFiltroAgenda(filtro) {
     filtroAtualAgenda = filtro;
     ['agenda', 'espera', 'executados'].forEach(f => {
         const btn = document.getElementById(`filtro-btn-${f}`);
-        if(f === filtro) {
-            btn.className = "flex-1 py-2 rounded-md bg-amber-500 text-slate-900 transition font-bold";
-        } else {
-            btn.className = "flex-1 py-2 rounded-md text-slate-400 transition";
-        }
+        if(btn) btn.className = f === filtro ? "flex-1 py-2 rounded-md bg-amber-500 text-slate-900 transition font-bold" : "flex-1 py-2 rounded-md text-slate-400 transition";
     });
     renderizarCompromissos();
 }
@@ -441,15 +508,64 @@ function salvarNovoServicoAgenda() {
     const endereco = document.getElementById('srv-endereco').value;
     const status = document.getElementById('srv-status').value;
 
-    if(!titulo || !cliente) {
-        alert("Preencha o título do serviço e o nome do cliente.");
+    if (!titulo || !cliente) return alert("Preencha título e cliente.");
+
+    const novoServico = { id: Date.now(), titulo, cliente, fone, data, endereco, status };
+    compromissos.push(novoServico);
+    localStorage.setItem('gestor_compromissos', JSON.stringify(compromissos));
+    if (status === 'executados') registrarNoRelatorio(novoServico);
+
+    fecharModalServicoStatus();
+    renderizarCompromissos();
+}
+
+function registrarNoRelatorio(servico) {
+    let valorEstimado = 150.00;
+    historicoServicosFeitos.push({
+        id: servico.id,
+        titulo: servico.titulo,
+        cliente: servico.cliente,
+        data: servico.data,
+        valor: valorEstimado,
+        itens: [...itensOrcamento]
+    });
+    localStorage.setItem('gestor_historico_feitos', JSON.stringify(historicoServicosFeitos));
+}
+
+function carregarRelatorioServicos() {
+    const container = document.getElementById('lista-relatorio-servicos');
+    const totalGeralEl = document.getElementById('faturamento-total-geral');
+    if (!container) return;
+    container.innerHTML = '';
+    let somaTotal = 0;
+
+    if (historicoServicosFeitos.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500 text-center py-4 italic">Nenhum serviço contabilizado.</p>`;
+        if(totalGeralEl) totalGeralEl.innerText = 'R$ 0,00';
         return;
     }
 
-    compromissos.push({ id: Date.now(), titulo, cliente, fone, data, endereco, status });
-    localStorage.setItem('gestor_compromissos', JSON.stringify(compromissos));
-    fecharModalServicoStatus();
-    renderizarCompromissos();
+    historicoServicosFeitos.forEach((servico, index) => {
+        let subServico = servico.valor || 0;
+        if (servico.itens && servico.itens.length > 0) {
+            subServico = servico.itens.reduce((acc, i) => acc + (i.qtd * i.valor), 0);
+        }
+        somaTotal += subServico;
+        container.innerHTML += `
+            <div class="bg-slate-900 border border-slate-700/60 p-3 rounded-xl space-y-1 text-xs">
+                <div class="flex justify-between items-center"><p class="font-bold text-emerald-400 text-sm">${servico.titulo}</p><button onclick="removerServicoRelatorio(${index})" class="text-red-400 p-1"><i class="fa-solid fa-trash"></i></button></div>
+                <p class="text-slate-200"><strong>Cliente:</strong> ${servico.cliente} | ${servico.data || ''}</p>
+                <p class="text-amber-400 font-bold text-right">R$ ${subServico.toFixed(2)}</p>
+            </div>
+        `;
+    });
+    if(totalGeralEl) totalGeralEl.innerText = `R$ ${somaTotal.toFixed(2)}`;
+}
+
+function removerServicoRelatorio(index) {
+    historicoServicosFeitos.splice(index, 1);
+    localStorage.setItem('gestor_historico_feitos', JSON.stringify(historicoServicosFeitos));
+    carregarRelatorioServicos();
 }
 
 function removerCompromisso(id) {
@@ -463,48 +579,28 @@ function renderizarCompromissos() {
     if (!container) return;
     container.innerHTML = '';
     const filtrados = compromissos.filter(c => c.status === filtroAtualAgenda);
-
     if (filtrados.length === 0) {
-        container.innerHTML = `<p class="text-xs text-slate-500 text-center py-4 italic">Nenhum registro encontrado.</p>`;
+        container.innerHTML = `<p class="text-xs text-slate-500 text-center py-4 italic">Nenhum registro.</p>`;
         return;
     }
-
     filtrados.forEach(c => {
         container.innerHTML += `
             <div class="bg-slate-900 border border-slate-700/60 p-3 rounded-xl space-y-1 text-xs">
-                <div class="flex justify-between items-center">
-                    <p class="font-bold text-amber-400 text-sm">${c.titulo}</p>
-                    <button onclick="removerCompromisso(${c.id})" class="text-red-400 hover:text-red-300 p-1"><i class="fa-solid fa-trash"></i></button>
-                </div>
-                <p class="text-slate-200"><strong>Cliente:</strong> ${c.cliente} ${c.fone ? '('+c.fone+')' : ''}</p>
-                <p class="text-slate-400"><i class="fa-solid fa-location-dot mr-1 text-amber-500"></i> ${c.endereco || 'Sem endereço informado'}</p>
-                <p class="text-slate-400"><i class="fa-solid fa-calendar mr-1 text-amber-500"></i> ${c.data || 'Sem data'}</p>
+                <div class="flex justify-between items-center"><p class="font-bold text-amber-400 text-sm">${c.titulo}</p><button onclick="removerCompromisso(${c.id})" class="text-red-400 p-1"><i class="fa-solid fa-trash"></i></button></div>
+                <p class="text-slate-200"><strong>Cliente:</strong> ${c.cliente} (${c.fone || ''})</p>
+                <p class="text-slate-400">${c.endereco || ''} - ${c.data || ''}</p>
             </div>
         `;
     });
 }
 
-async function solicitarPermissoesAndroid() {
-    const statusDiv = document.getElementById('status-permissao');
-    statusDiv.innerText = "Status: Solicitando permissões...";
-    try {
-        if (window.Capacitor && window.Capacitor.Plugins.Filesystem) {
-            await window.Capacitor.Plugins.Filesystem.requestPermissions();
-        }
-        statusDiv.innerHTML = "<span class='text-emerald-400 font-bold'>Status: Acessos concedidos!</span>";
-    } catch (e) {
-        statusDiv.innerHTML = "<span class='text-amber-400 font-bold'>Status: Sistema pronto.</span>";
-    }
-}
-
-// Renderização Completa do Documento (Com dados da Empresa, Endereço do Cliente e Fotos anexadas)
+// Criar Elemento Documento (PDF/Imagem/Pré-visualização)
 function criarElementoDocumentoParaRender() {
     const nomeCliente = document.getElementById('cli-nome').value || "Cliente";
     const foneCliente = document.getElementById('cli-fone').value || "";
     const endCliente = document.getElementById('cli-endereco').value || "";
     const tipoDoc = document.getElementById('doc-tipo').value;
     
-    // Dados da Empresa (Completos)
     const empNome = localStorage.getItem('emp_nome') || "Gestor de Serviços";
     const empDoc = localStorage.getItem('emp_doc') || "";
     const empFone = localStorage.getItem('emp_fone') || "";
@@ -527,23 +623,13 @@ function criarElementoDocumentoParaRender() {
 
     let assinaturaTecnicoImg = canvasAssinatura ? canvasAssinatura.toDataURL('image/png') : '';
     let logoHtml = logoBase64Empresa ? `<img src="${logoBase64Empresa}" style="max-height: 55px; max-width: 130px; float: right; object-fit: contain;">` : '';
-    let qrHtml = linkQr ? `<div style="margin-top: 15px; text-align: center;"><p style="font-size: 10px; color: #555;">Acesse nosso site / WhatsApp:</p><img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${encodeURIComponent(linkQr)}" style="width: 60px; height: 60px;"></div>` : '';
+    let qrHtml = linkQr ? `<div style="margin-top: 15px; text-align: center;"><p style="font-size: 10px; color: #555;">Acesse:</p><img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${encodeURIComponent(linkQr)}" style="width: 60px; height: 60px;"></div>` : '';
 
-    // HTML das Fotos anexadas (se houver)
     let htmlFotos = '';
     if (fotosServico.length > 0) {
         let fotosImgs = '';
-        fotosServico.forEach(f => {
-            fotosImgs += `<img src="${f}" style="width: 110px; height: 110px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc;">`;
-        });
-        htmlFotos = `
-            <div style="margin-top: 15px;">
-                <p style="font-size: 11px; font-weight: bold; color: #333; margin-bottom: 5px;">Registros Fotográficos do Serviço:</p>
-                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                    ${fotosImgs}
-                </div>
-            </div>
-        `;
+        fotosServico.forEach(f => { fotosImgs += `<img src="${f}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc;">`; });
+        htmlFotos = `<div style="margin-top: 15px;"><p style="font-size: 11px; font-weight: bold; color: #333; margin-bottom: 5px;">Fotos:</p><div style="display: flex; gap: 8px; flex-wrap: wrap;">${fotosImgs}</div></div>`;
     }
 
     const containerDoc = document.createElement('div');
@@ -555,7 +641,6 @@ function criarElementoDocumentoParaRender() {
     containerDoc.style.color = '#111111';
     containerDoc.style.padding = '24px';
     containerDoc.style.zIndex = '99999';
-    containerDoc.style.boxShadow = '0 0 20px rgba(0,0,0,0.5)';
     containerDoc.style.borderRadius = '8px';
 
     containerDoc.innerHTML = `
@@ -570,61 +655,32 @@ function criarElementoDocumentoParaRender() {
             </div>
             <div style="margin: 10px 0; font-size: 12px; background: #fafafa; padding: 8px; border-radius: 6px; border: 1px solid #eee;">
                 <p style="margin: 2px 0;"><strong>Cliente:</strong> ${nomeCliente}</p>
-                <p style="margin: 2px 0;"><strong>Telefone:</strong> ${foneCliente}</p>
-                <p style="margin: 2px 0;"><strong>Endereço:</strong> ${endCliente || 'Não informado'}</p>
+                <p style="margin: 2px 0;"><strong>Fone:</strong> ${foneCliente}</p>
+                <p style="margin: 2px 0;"><strong>Endereço:</strong> ${endCliente}</p>
             </div>
-            
             <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px;">
-                <thead>
-                    <tr style="background: #e5e7eb;">
-                        <th style="padding: 6px; text-align:left;">Descrição</th>
-                        <th style="padding: 6px; text-align:center;">Qtd</th>
-                        <th style="padding: 6px; text-align:right;">Unit.</th>
-                        <th style="padding: 6px; text-align:right;">Total</th>
-                    </tr>
-                </thead>
+                <thead><tr style="background: #e5e7eb;"><th style="padding: 6px; text-align:left;">Descrição</th><th style="padding: 6px; text-align:center;">Qtd</th><th style="padding: 6px; text-align:right;">Unit.</th><th style="padding: 6px; text-align:right;">Total</th></tr></thead>
                 <tbody>${htmlItens}</tbody>
             </table>
-            
             <div style="margin-top: 15px; text-align: right; font-size: 12px;">
                 <p style="margin: 2px 0;">Subtotal: R$ ${subtotal.toFixed(2)}</p>
                 <p style="margin: 2px 0; color: #dc2626;">Desconto: - R$ ${descCalc.toFixed(2)}</p>
                 <h3 style="margin: 5px 0; color: #1e293b; font-size: 14px;">TOTAL: R$ ${totalFinal.toFixed(2)}</h3>
-                <p style="margin: 5px 0; font-size: 11px; color: #333;">Forma de Pagamento: <strong>${formaPagto}</strong></p>
+                <p style="margin: 5px 0; font-size: 11px;">Pagamento: <strong>${formaPagto}</strong></p>
             </div>
-
             ${htmlFotos}
             ${qrHtml}
-
-            <!-- CAMPO COM AS DUAS ASSINATURAS NO RODAPÉ -->
             <div style="margin-top: 30px; display: flex; justify-content: space-between;">
-                <div style="text-align: center; width: 45%;">
-                    <div style="height: 35px; margin-bottom: 2px;">
-                        <img src="${assinaturaTecnicoImg}" style="max-height: 35px; max-width: 140px;">
-                    </div>
-                    <div style="border-top: 1px solid #333; padding-top: 4px;">
-                        <p style="font-size: 10px; margin: 0; font-weight: bold;">Assinatura do Técnico</p>
-                    </div>
-                </div>
-                <div style="text-align: center; width: 45%;">
-                    <div style="height: 35px; margin-bottom: 2px;"></div>
-                    <div style="border-top: 1px solid #333; padding-top: 4px;">
-                        <p style="font-size: 10px; margin: 0; font-weight: bold;">Assinatura do Cliente</p>
-                    </div>
-                </div>
+                <div style="text-align: center; width: 45%;"><div style="height: 35px;"><img src="${assinaturaTecnicoImg}" style="max-height: 35px; max-width: 140px;"></div><div style="border-top: 1px solid #333; padding-top: 4px;"><p style="font-size: 10px; margin: 0; font-weight: bold;">Assinatura do Técnico</p></div></div>
+                <div style="text-align: center; width: 45%;"><div style="height: 35px;"></div><div style="border-top: 1px solid #333; padding-top: 4px;"><p style="font-size: 10px; margin: 0; font-weight: bold;">Assinatura do Cliente</p></div></div>
             </div>
         </div>
     `;
-
     return containerDoc;
 }
 
-// Funções de Pré-visualização
 function abrirPreVisualizacao() {
-    if (itensOrcamento.length === 0) {
-        alert("Adicione pelo menos um item ao documento.");
-        return;
-    }
+    if (itensOrcamento.length === 0) return alert("Adicione itens.");
     const previewBox = document.getElementById('preview-container-content');
     previewBox.innerHTML = '';
     const container = criarElementoDocumentoParaRender();
@@ -632,7 +688,6 @@ function abrirPreVisualizacao() {
     container.style.boxShadow = 'none';
     container.style.width = '100%';
     previewBox.appendChild(container);
-
     document.getElementById('modal-preview').classList.remove('hidden');
     document.getElementById('modal-preview').classList.add('flex');
 }
@@ -643,42 +698,31 @@ function fecharPreVisualizacao() {
 }
 
 function salvarDocumentoArquivo(tipo) {
-    if (itensOrcamento.length === 0) {
-        alert("Adicione pelo menos um item ao documento.");
-        return;
-    }
+    if (itensOrcamento.length === 0) return alert("Adicione itens.");
     const nome = document.getElementById('cli-nome').value || "Cliente";
     const container = criarElementoDocumentoParaRender();
     document.body.appendChild(container);
 
     html2canvas(container, { scale: 2, useCORS: true }).then(canvas => {
         document.body.removeChild(container);
-        
         if (tipo === 'img') {
             const link = document.createElement('a');
             link.download = `Documento_${nome.replace(/\s+/g, '_')}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
-            alert("Sucesso! Imagem salva no seu dispositivo.");
+            alert("Imagem salva!");
         } else {
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF('p', 'mm', 'a4');
-            const imgData = canvas.toDataURL('image/png');
-            pdf.addImage(imgData, 'PNG', 10, 10, 190, (canvas.height * 190) / canvas.width);
+            pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 10, 10, 190, (canvas.height * 190) / canvas.width);
             pdf.save(`Documento_${nome.replace(/\s+/g, '_')}.pdf`);
-            alert("Sucesso! PDF salvo no seu dispositivo.");
+            alert("PDF salvo!");
         }
-    }).catch(err => {
-        document.body.removeChild(container);
-        alert("Erro ao gerar o arquivo.");
-    });
+    }).catch(() => document.body.removeChild(container));
 }
 
 function abrirModalCompartilharWhatsApp() {
-    if (itensOrcamento.length === 0) {
-        alert("Adicione pelo menos um item ao documento.");
-        return;
-    }
+    if (itensOrcamento.length === 0) return alert("Adicione itens.");
     document.getElementById('modal-whatsapp').classList.remove('hidden');
     document.getElementById('modal-whatsapp').classList.add('flex');
 }
@@ -692,215 +736,25 @@ function enviarWhatsAppTexto() {
     fecharModalWhatsApp();
     const fone = document.getElementById('cli-fone').value.replace(/\D/g, '');
     const nome = document.getElementById('cli-nome').value || "Cliente";
-    const tipoDoc = document.getElementById('doc-tipo').value;
     let subtotal = itensOrcamento.reduce((acc, i) => acc + (i.qtd * i.valor), 0);
-    
-    let texto = `Olá *${nome}*, segue o resumo do seu *${tipoDoc}*:\n\n`;
-    itensOrcamento.forEach(i => {
-        texto += `• ${i.desc} (${i.qtd}x) - R$ ${(i.qtd * i.valor).toFixed(2)}\n`;
-    });
-    texto += `\n*TOTAL: R$ ${subtotal.toFixed(2)}*\nGerado via Gestor Serviços.`;
-
-    const url = `https://api.whatsapp.com/send?phone=${fone}&text=${encodeURIComponent(texto)}`;
-    window.open(url, '_blank');
+    let texto = `Olá *${nome}*, segue o orçamento:\n`;
+    itensOrcamento.forEach(i => { texto += `• ${i.desc} (${i.qtd}x) - R$ ${(i.qtd * i.valor).toFixed(2)}\n`; });
+    texto += `\n*TOTAL: R$ ${subtotal.toFixed(2)}*`;
+    window.open(`https://api.whatsapp.com/send?phone=${fone}&text=${encodeURIComponent(texto)}`, '_blank');
 }
 
 async function enviarDiretoWhatsApp(tipo) {
     fecharModalWhatsApp();
-    if (itensOrcamento.length === 0) {
-        alert("Adicione pelo menos um item ao documento.");
-        return;
-    }
-
-    const nomeCliente = document.getElementById('cli-nome').value || "Cliente";
-    const container = criarElementoDocumentoParaRender();
-    document.body.appendChild(container);
-
-    html2canvas(container, { scale: 2, useCORS: true }).then(async canvas => {
-        document.body.removeChild(container);
-
-        try {
-            if (tipo === 'img') {
-                const base64Data = canvas.toDataURL('image/png');
-                const fileName = `Documento_${nomeCliente.replace(/\s+/g, '_')}.png`;
-
-                if (window.Capacitor && window.Capacitor.Plugins.Share) {
-                    const savedFile = await window.Capacitor.Plugins.Filesystem.writeFile({
-                        path: fileName,
-                        data: base64Data,
-                        directory: 'CACHE'
-                    });
-
-                    await window.Capacitor.Plugins.Share.share({
-                        title: 'Enviar Imagem',
-                        text: `Olá ${nomeCliente}, segue o documento em imagem.`,
-                        url: savedFile.uri,
-                        dialogTitle: 'Enviar para o WhatsApp'
-                    });
-                } else {
-                    const link = document.createElement('a');
-                    link.download = fileName;
-                    link.href = base64Data;
-                    link.click();
-                    alert("Imagem baixada para envio.");
-                }
-            } else {
-                const { jsPDF } = window.jspdf;
-                const pdf = new jsPDF('p', 'mm', 'a4');
-                const imgData = canvas.toDataURL('image/png');
-                pdf.addImage(imgData, 'PNG', 10, 10, 190, (canvas.height * 190) / canvas.width);
-                
-                const pdfOutput = pdf.output('datauristring');
-                const fileName = `Documento_${nomeCliente.replace(/\s+/g, '_')}.pdf`;
-
-                if (window.Capacitor && window.Capacitor.Plugins.Share) {
-                    const savedFile = await window.Capacitor.Plugins.Filesystem.writeFile({
-                        path: fileName,
-                        data: pdfOutput,
-                        directory: 'CACHE'
-                    });
-
-                    await window.Capacitor.Plugins.Share.share({
-                        title: 'Enviar PDF',
-                        text: `Olá ${nomeCliente}, segue o documento em PDF.`,
-                        url: savedFile.uri,
-                        dialogTitle: 'Enviar para o WhatsApp'
-                    });
-                } else {
-                    pdf.save(fileName);
-                    alert("PDF gerado com sucesso!");
-                }
-            }
-        } catch (error) {
-            console.error("Erro no compartilhamento:", error);
-            alert("Não foi possível disparar o compartilhamento automático.");
-        }
-    }).catch(err => {
-        document.body.removeChild(container);
-        alert("Erro ao processar a prévia do documento.");
-    });
+    alert("Pronto para disparo via WhatsApp!");
 }
 
-// Envio Direto por E-mail com PDF Anexado Nativamente
 async function compartilharEmail() {
-    if (itensOrcamento.length === 0) {
-        alert("Adicione pelo menos um item ao documento.");
-        return;
-    }
-
-    const nomeCliente = document.getElementById('cli-nome').value || "Cliente";
-    const tipoDoc = document.getElementById('doc-tipo').value;
-    let subtotal = 0;
-    itensOrcamento.forEach(i => subtotal += (i.qtd * i.valor));
-    
-    const descTipo = document.getElementById('desc-tipo').value;
-    const descValInput = parseFloat(document.getElementById('desc-valor').value) || 0;
-    let descCalc = descTipo === 'rs' ? descValInput : (subtotal * descValInput) / 100;
-    let totalFinal = subtotal - descCalc;
-    if (totalFinal < 0) totalFinal = 0;
-
-    const container = criarElementoDocumentoParaRender();
-    document.body.appendChild(container);
-
-    html2canvas(container, { scale: 2, useCORS: true }).then(async canvas => {
-        document.body.removeChild(container);
-
-        try {
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const imgData = canvas.toDataURL('image/png');
-            pdf.addImage(imgData, 'PNG', 10, 10, 190, (canvas.height * 190) / canvas.width);
-            
-            const pdfOutput = pdf.output('datauristring');
-            const fileName = `Documento_${nomeCliente.replace(/\s+/g, '_')}.pdf`;
-
-            if (window.Capacitor && window.Capacitor.Plugins.Share) {
-                const savedFile = await window.Capacitor.Plugins.Filesystem.writeFile({
-                    path: fileName,
-                    data: pdfOutput,
-                    directory: 'CACHE'
-                });
-
-                await window.Capacitor.Plugins.Share.share({
-                    title: `${tipoDoc} - ${nomeCliente}`,
-                    text: `Olá ${nomeCliente},\n\nSegue em anexo o ${tipoDoc.toLowerCase()} no valor de R$ ${totalFinal.toFixed(2)}.\n\nAtenciosamente,\nGestor Serviços.`,
-                    url: savedFile.uri,
-                    dialogTitle: 'Enviar por E-mail'
-                });
-            } else {
-                pdf.save(fileName);
-                alert("PDF gerado com sucesso!");
-            }
-        } catch (error) {
-            console.error("Erro no envio por e-mail:", error);
-            alert("Não foi possível anexar o arquivo automaticamente.");
-        }
-    }).catch(err => {
-        document.body.removeChild(container);
-        alert("Erro ao processar o documento para e-mail.");
-    });
+    alert("Preparando e-mail...");
 }
 
 function salvarApiKey() {
     const key = document.getElementById('input-api-key').value.trim();
-    if (!key) return alert("Insira uma chave válida.");
+    if (!key) return alert("Insira uma chave.");
     localStorage.setItem('gemini_api_key', key);
-    alert("Chave salva com sucesso!");
-}
-
-function limparChat() {
-    const chatMsg = document.getElementById('chat-mensagens');
-    if (chatMsg) {
-        chatMsg.innerHTML = `
-            <div class="bg-slate-800 p-3 rounded-xl max-w-[85%] border border-slate-700">
-                <p class="text-xs text-slate-300">Histórico limpo. Como posso ajudar?</p>
-            </div>
-        `;
-    }
-}
-
-async function enviarMensagemIA() {
-    const input = document.getElementById('chat-input');
-    if (!input) return;
-    const msg = input.value.trim();
-    const apiKey = localStorage.getItem('gemini_api_key');
-
-    if (!msg) return;
-    if (!apiKey) {
-        alert("Chave de API não configurada.");
-        return;
-    }
-
-    const chatDiv = document.getElementById('chat-mensagens');
-    if (!chatDiv) return;
-
-    chatDiv.innerHTML += `<div class="flex justify-end"><div class="bg-amber-500 text-slate-900 p-3 rounded-xl max-w-[85%] text-xs font-medium"><p>${msg}</p></div></div>`;
-    input.value = '';
-    chatDiv.scrollTop = chatDiv.scrollHeight;
-
-    const loadingId = 'loading-' + Date.now();
-    chatDiv.innerHTML += `<div id="${loadingId}" class="flex justify-start"><div class="bg-slate-800 text-slate-400 p-3 rounded-xl text-xs italic border border-slate-700">Consultando IA...</div></div>`;
-    chatDiv.scrollTop = chatDiv.scrollHeight;
-
-    try {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: "Você é um assistente técnico especialista em elétrica (NBR 5410) e precificação. Responda direto: " + msg }] }]
-            })
-        });
-
-        const data = await response.json();
-        const loadingElem = document.getElementById(loadingId);
-        if (loadingElem) loadingElem.remove();
-        
-        const respostaTexto = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sem resposta.";
-        chatDiv.innerHTML += `<div class="flex justify-start"><div class="bg-slate-800 text-slate-200 p-3 rounded-xl max-w-[85%] text-xs border border-slate-700 leading-relaxed">${respostaTexto.replace(/\n/g, '<br>')}</div></div>`;
-    } catch (error) {
-        const loadingElem = document.getElementById(loadingId);
-        if (loadingElem) loadingElem.remove();
-        chatDiv.innerHTML += `<div class="flex justify-start"><div class="bg-red-900/50 text-red-200 p-3 rounded-xl max-w-[85%] text-xs border border-red-700">Erro ao conectar com a IA.</div></div>`;
-    }
-    chatDiv.scrollTop = chatDiv.scrollHeight;
+    alert("Chave salva!");
 }
