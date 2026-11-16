@@ -1,4 +1,5 @@
 let itensOrcamento = [];
+let fotosServico = []; // Array para armazenar até 4 fotos em Base64
 let compromissos = JSON.parse(localStorage.getItem('gestor_compromissos') || '[]');
 let filtroAtualAgenda = 'agenda';
 let logoBase64Empresa = localStorage.getItem('gestor_logo_b64') || '';
@@ -162,7 +163,87 @@ function carregarDadosEmpresaNaTela() {
     if(localStorage.getItem('emp_link_qr')) document.getElementById('emp-link-qr').value = localStorage.getItem('emp_link_qr');
 }
 
-// Renderização dos Catálogos Separados
+// Importar Contato da Agenda do Celular
+async function importarContatoAgenda() {
+    try {
+        if (window.navigator && window.navigator.contacts && window.navigator.contacts.select) {
+            const props = ['name', 'tel'];
+            const opts = { multiple: false };
+            const contacts = await window.navigator.contacts.select(props, opts);
+            if (contacts && contacts.length > 0) {
+                const contato = contacts[0];
+                const nome = contato.name ? contato.name[0] : '';
+                const fone = contato.tel ? contato.tel[0] : '';
+                if (nome) document.getElementById('cli-nome').value = nome;
+                if (fone) document.getElementById('cli-fone').value = fone;
+                alert("Contato importado com sucesso!");
+            }
+        } else if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Contacts) {
+            // Suporte nativo Capacitor Contacts se plugin estiver instalado
+            const result = await window.Capacitor.Plugins.Contacts.pickContact();
+            if (result && result.contact) {
+                if (result.contact.name) document.getElementById('cli-nome').value = result.contact.name.display || '';
+                if (result.contact.phones && result.contact.phones.length > 0) {
+                    document.getElementById('cli-fone').value = result.contact.phones[0].number || '';
+                }
+            }
+        } else {
+            // Fallback usando o seletor nativo de input se disponível ou aviso
+            alert("Para importar diretamente, utilize o preenchimento automático do seu teclado ou insira os dados do cliente.");
+        }
+    } catch (e) {
+        console.log("Erro ao importar contato:", e);
+        alert("Não foi possível acessar os contatos diretamente neste dispositivo. Digite o nome ou use o preenchimento do teclado.");
+    }
+}
+
+// Gerenciamento de Fotos do Serviço (Até 4 fotos)
+function adicionarFotosServico(event) {
+    const files = event.target.files;
+    if (!files) return;
+
+    for (let i = 0; i < files.length; i++) {
+        if (fotosServico.length >= 4) {
+            alert("Você pode adicionar no máximo 4 fotos por serviço.");
+            break;
+        }
+        const file = files[i];
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            fotosServico.push(e.target.result);
+            renderizarPreviewFotos();
+        };
+        reader.readAsDataURL(file);
+    }
+    event.target.value = ''; // limpa o input
+}
+
+function removerFotoServico(index) {
+    fotosServico.splice(index, 1);
+    renderizarPreviewFotos();
+}
+
+function renderizarPreviewFotos() {
+    const container = document.getElementById('container-fotos-preview');
+    const contador = document.getElementById('contador-fotos');
+    if (!container || !contador) return;
+
+    container.innerHTML = '';
+    contador.innerText = `${fotosServico.length}/4 fotos`;
+
+    fotosServico.forEach((imgBase64, index) => {
+        container.innerHTML += `
+            <div class="relative bg-slate-900 rounded-lg overflow-hidden border border-slate-700 aspect-square">
+                <img src="${imgBase64}" class="w-full h-full object-cover">
+                <button onclick="removerFotoServico(${index})" class="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-md">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        `;
+    });
+}
+
+// Renderização dos Catálogos
 function carregarCatalogosNaTela() {
     const containerMat = document.getElementById('catalogo-materiais');
     if (containerMat) {
@@ -324,7 +405,7 @@ function atualizarTabelaOrcamento() {
     document.getElementById('total-geral').innerText = `R$ ${totalFinal.toFixed(2).replace('.', ',')}`;
 }
 
-// Agenda e Serviços
+// Agenda e Serviços (Com dados completos do cliente e endereço)
 function mudarFiltroAgenda(filtro) {
     filtroAtualAgenda = filtro;
     ['agenda', 'espera', 'executados'].forEach(f => {
@@ -340,6 +421,9 @@ function mudarFiltroAgenda(filtro) {
 
 function abrirModalServicoStatus() {
     document.getElementById('srv-titulo').value = '';
+    document.getElementById('srv-cliente').value = '';
+    document.getElementById('srv-fone').value = '';
+    document.getElementById('srv-endereco').value = '';
     document.getElementById('modal-servico-status').classList.remove('hidden');
     document.getElementById('modal-servico-status').classList.add('flex');
 }
@@ -351,15 +435,18 @@ function fecharModalServicoStatus() {
 
 function salvarNovoServicoAgenda() {
     const titulo = document.getElementById('srv-titulo').value;
+    const cliente = document.getElementById('srv-cliente').value;
+    const fone = document.getElementById('srv-fone').value;
     const data = document.getElementById('srv-data').value;
+    const endereco = document.getElementById('srv-endereco').value;
     const status = document.getElementById('srv-status').value;
 
-    if(!titulo) {
-        alert("Preencha o título do serviço.");
+    if(!titulo || !cliente) {
+        alert("Preencha o título do serviço e o nome do cliente.");
         return;
     }
 
-    compromissos.push({ id: Date.now(), titulo, data, status });
+    compromissos.push({ id: Date.now(), titulo, cliente, fone, data, endereco, status });
     localStorage.setItem('gestor_compromissos', JSON.stringify(compromissos));
     fecharModalServicoStatus();
     renderizarCompromissos();
@@ -384,12 +471,14 @@ function renderizarCompromissos() {
 
     filtrados.forEach(c => {
         container.innerHTML += `
-            <div class="bg-slate-900 border border-slate-700/60 p-3 rounded-xl flex justify-between items-center text-xs">
-                <div>
-                    <p class="font-bold text-slate-200">${c.titulo}</p>
-                    <p class="text-slate-400"><i class="fa-solid fa-calendar mr-1 text-amber-400"></i> ${c.data || 'Sem data'}</p>
+            <div class="bg-slate-900 border border-slate-700/60 p-3 rounded-xl space-y-1 text-xs">
+                <div class="flex justify-between items-center">
+                    <p class="font-bold text-amber-400 text-sm">${c.titulo}</p>
+                    <button onclick="removerCompromisso(${c.id})" class="text-red-400 hover:text-red-300 p-1"><i class="fa-solid fa-trash"></i></button>
                 </div>
-                <button onclick="removerCompromisso(${c.id})" class="text-red-400 hover:text-red-300 p-2"><i class="fa-solid fa-trash"></i></button>
+                <p class="text-slate-200"><strong>Cliente:</strong> ${c.cliente} ${c.fone ? '('+c.fone+')' : ''}</p>
+                <p class="text-slate-400"><i class="fa-solid fa-location-dot mr-1 text-amber-500"></i> ${c.endereco || 'Sem endereço informado'}</p>
+                <p class="text-slate-400"><i class="fa-solid fa-calendar mr-1 text-amber-500"></i> ${c.data || 'Sem data'}</p>
             </div>
         `;
     });
@@ -408,10 +497,14 @@ async function solicitarPermissoesAndroid() {
     }
 }
 
-// Renderização do Documento (Com os dois espaços de assinatura: Técnico e Cliente)
+// Renderização Completa do Documento (Com dados da Empresa, Endereço do Cliente e Fotos anexadas)
 function criarElementoDocumentoParaRender() {
     const nomeCliente = document.getElementById('cli-nome').value || "Cliente";
+    const foneCliente = document.getElementById('cli-fone').value || "";
+    const endCliente = document.getElementById('cli-endereco').value || "";
     const tipoDoc = document.getElementById('doc-tipo').value;
+    
+    // Dados da Empresa (Completos)
     const empNome = localStorage.getItem('emp_nome') || "Gestor de Serviços";
     const empDoc = localStorage.getItem('emp_doc') || "";
     const empFone = localStorage.getItem('emp_fone') || "";
@@ -433,6 +526,25 @@ function criarElementoDocumentoParaRender() {
     if (totalFinal < 0) totalFinal = 0;
 
     let assinaturaTecnicoImg = canvasAssinatura ? canvasAssinatura.toDataURL('image/png') : '';
+    let logoHtml = logoBase64Empresa ? `<img src="${logoBase64Empresa}" style="max-height: 55px; max-width: 130px; float: right; object-fit: contain;">` : '';
+    let qrHtml = linkQr ? `<div style="margin-top: 15px; text-align: center;"><p style="font-size: 10px; color: #555;">Acesse nosso site / WhatsApp:</p><img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${encodeURIComponent(linkQr)}" style="width: 60px; height: 60px;"></div>` : '';
+
+    // HTML das Fotos anexadas (se houver)
+    let htmlFotos = '';
+    if (fotosServico.length > 0) {
+        let fotosImgs = '';
+        fotosServico.forEach(f => {
+            fotosImgs += `<img src="${f}" style="width: 110px; height: 110px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc;">`;
+        });
+        htmlFotos = `
+            <div style="margin-top: 15px;">
+                <p style="font-size: 11px; font-weight: bold; color: #333; margin-bottom: 5px;">Registros Fotográficos do Serviço:</p>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    ${fotosImgs}
+                </div>
+            </div>
+        `;
+    }
 
     const containerDoc = document.createElement('div');
     containerDoc.style.position = 'fixed';
@@ -446,23 +558,23 @@ function criarElementoDocumentoParaRender() {
     containerDoc.style.boxShadow = '0 0 20px rgba(0,0,0,0.5)';
     containerDoc.style.borderRadius = '8px';
 
-    let logoHtml = logoBase64Empresa ? `<img src="${logoBase64Empresa}" style="max-height: 50px; max-width: 120px; float: right;">` : '';
-    let qrHtml = linkQr ? `<div style="margin-top: 15px; text-align: center;"><p style="font-size: 10px; color: #555;">Acesse nosso site / WhatsApp:</p><img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(linkQr)}" style="width: 70px; height: 70px;"></div>` : '';
-
     containerDoc.innerHTML = `
         <div style="font-family: Arial, sans-serif;">
             ${logoHtml}
-            <h2 style="color: #d97706; margin: 0 0 5px 0; font-size: 18px;">${empNome}</h2>
+            <h2 style="color: #d97706; margin: 0 0 4px 0; font-size: 18px;">${empNome}</h2>
             <p style="font-size: 11px; color: #555; margin: 0;">CNPJ/CPF: ${empDoc} | Fone: ${empFone}</p>
             <hr style="border: 1px solid #d97706; margin: 10px 0;">
             <div style="background: #f3f4f6; padding: 8px; border-radius: 6px; display: flex; justify-content: space-between;">
                 <h3 style="margin: 0; font-size: 14px; color: #1e293b;">${tipoDoc}</h3>
                 <span style="font-size: 11px;">Data: ${document.getElementById('cli-data').value}</span>
             </div>
-            <p style="margin: 10px 0 5px 0; font-size: 12px;"><strong>Cliente:</strong> ${nomeCliente}</p>
-            <p style="margin: 0 0 15px 0; font-size: 12px;"><strong>Telefone:</strong> ${document.getElementById('cli-fone').value}</p>
+            <div style="margin: 10px 0; font-size: 12px; background: #fafafa; padding: 8px; border-radius: 6px; border: 1px solid #eee;">
+                <p style="margin: 2px 0;"><strong>Cliente:</strong> ${nomeCliente}</p>
+                <p style="margin: 2px 0;"><strong>Telefone:</strong> ${foneCliente}</p>
+                <p style="margin: 2px 0;"><strong>Endereço:</strong> ${endCliente || 'Não informado'}</p>
+            </div>
             
-            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px;">
                 <thead>
                     <tr style="background: #e5e7eb;">
                         <th style="padding: 6px; text-align:left;">Descrição</th>
@@ -481,20 +593,21 @@ function criarElementoDocumentoParaRender() {
                 <p style="margin: 5px 0; font-size: 11px; color: #333;">Forma de Pagamento: <strong>${formaPagto}</strong></p>
             </div>
 
+            ${htmlFotos}
             ${qrHtml}
 
             <!-- CAMPO COM AS DUAS ASSINATURAS NO RODAPÉ -->
-            <div style="margin-top: 40px; display: flex; justify-content: space-between;">
+            <div style="margin-top: 30px; display: flex; justify-content: space-between;">
                 <div style="text-align: center; width: 45%;">
-                    <div style="height: 40px; margin-bottom: 2px;">
-                        <img src="${assinaturaTecnicoImg}" style="max-height: 40px; max-width: 150px;">
+                    <div style="height: 35px; margin-bottom: 2px;">
+                        <img src="${assinaturaTecnicoImg}" style="max-height: 35px; max-width: 140px;">
                     </div>
                     <div style="border-top: 1px solid #333; padding-top: 4px;">
                         <p style="font-size: 10px; margin: 0; font-weight: bold;">Assinatura do Técnico</p>
                     </div>
                 </div>
                 <div style="text-align: center; width: 45%;">
-                    <div style="height: 40px; margin-bottom: 2px;"></div>
+                    <div style="height: 35px; margin-bottom: 2px;"></div>
                     <div style="border-top: 1px solid #333; padding-top: 4px;">
                         <p style="font-size: 10px; margin: 0; font-weight: bold;">Assinatura do Cliente</p>
                     </div>
@@ -504,6 +617,29 @@ function criarElementoDocumentoParaRender() {
     `;
 
     return containerDoc;
+}
+
+// Funções de Pré-visualização
+function abrirPreVisualizacao() {
+    if (itensOrcamento.length === 0) {
+        alert("Adicione pelo menos um item ao documento.");
+        return;
+    }
+    const previewBox = document.getElementById('preview-container-content');
+    previewBox.innerHTML = '';
+    const container = criarElementoDocumentoParaRender();
+    container.style.position = 'relative';
+    container.style.boxShadow = 'none';
+    container.style.width = '100%';
+    previewBox.appendChild(container);
+
+    document.getElementById('modal-preview').classList.remove('hidden');
+    document.getElementById('modal-preview').classList.add('flex');
+}
+
+function fecharPreVisualizacao() {
+    document.getElementById('modal-preview').classList.remove('flex');
+    document.getElementById('modal-preview').classList.add('hidden');
 }
 
 function salvarDocumentoArquivo(tipo) {
