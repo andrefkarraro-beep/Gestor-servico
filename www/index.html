@@ -34,7 +34,7 @@
     <!-- CONTEÚDO PRINCIPAL (ABAS) -->
     <main class="flex-1 overflow-y-auto p-4 pb-32 space-y-4">
         
-        <!-- ABA 0: MENU PRINCIPAL (NOVO HUB DE ATALHOS) -->
+        <!-- ABA 0: MENU PRINCIPAL -->
         <div id="aba-menu" class="space-y-4 tab-content">
             <div class="bg-slate-800 border border-slate-700 rounded-2xl p-4 shadow-md text-center space-y-2">
                 <h2 class="text-base font-bold text-amber-400">Painel de Controle Geral</h2>
@@ -45,6 +45,10 @@
                 <button onclick="mudarAba('orcamento')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 p-4 rounded-xl flex flex-col items-center justify-center space-y-2 transition shadow-lg">
                     <i class="fa-solid fa-file-invoice-dollar text-2xl text-amber-400"></i>
                     <span class="text-xs font-semibold text-slate-200">Documentos</span>
+                </button>
+                <button onclick="mudarAba('clientes')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 p-4 rounded-xl flex flex-col items-center justify-center space-y-2 transition shadow-lg">
+                    <i class="fa-solid fa-users text-2xl text-amber-400"></i>
+                    <span class="text-xs font-semibold text-slate-200">Clientes Salvos</span>
                 </button>
                 <button onclick="mudarAba('agenda')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 p-4 rounded-xl flex flex-col items-center justify-center space-y-2 transition shadow-lg">
                     <i class="fa-solid fa-calendar-days text-2xl text-amber-400"></i>
@@ -62,14 +66,14 @@
                     <i class="fa-solid fa-chart-line text-2xl text-emerald-400"></i>
                     <span class="text-xs font-semibold text-slate-200">Serviços Feitos</span>
                 </button>
-                <button onclick="mudarAba('config')" class="bg-slate-800 hover:bg-slate-700 border border-slate-700 p-4 rounded-xl flex flex-col items-center justify-center space-y-2 transition shadow-lg">
-                    <i class="fa-solid fa-building text-2xl text-amber-400"></i>
-                    <span class="text-xs font-semibold text-slate-200">Empresa</span>
-                </button>
             </div>
+            <button onclick="mudarAba('config')" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 p-3 rounded-xl flex items-center justify-center space-x-2 transition shadow-lg">
+                <i class="fa-solid fa-building text-amber-400"></i>
+                <span class="text-xs font-semibold text-slate-200">Dados da Empresa & Ajustes</span>
+            </button>
         </div>
 
-        <!-- ABA 1: DOCUMENTOS (ORÇAMENTO / NOTA / RECIBO) -->
+        <!-- ABA 1: DOCUMENTOS -->
         <div id="aba-orcamento" class="space-y-4 tab-content hidden">
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 shadow-sm">
                 <label class="text-xs text-slate-400 block mb-1 font-semibold uppercase">Tipo de Documento</label>
@@ -80,15 +84,19 @@
                 </select>
             </div>
 
-            <!-- Dados do Cliente + Botão Contatos -->
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
                 <div class="flex justify-between items-center">
                     <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center">
                         <i class="fa-solid fa-user-pen mr-2"></i> Dados do Cliente
                     </h2>
-                    <button onclick="importarContatoAgenda()" class="bg-slate-700 hover:bg-slate-600 text-amber-400 text-xs font-semibold px-2.5 py-1 rounded-lg transition flex items-center">
-                        <i class="fa-solid fa-address-book mr-1.5"></i> Contatos
-                    </button>
+                    <div class="flex space-x-2">
+                        <button onclick="abrirModalSelecionarClienteSalvo()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-lg transition flex items-center">
+                            <i class="fa-solid fa-users mr-1"></i> Salvos
+                        </button>
+                        <button onclick="importarContatoAgenda()" class="bg-slate-700 hover:bg-slate-600 text-amber-400 text-xs font-semibold px-2 py-1 rounded-lg transition flex items-center">
+                            <i class="fa-solid fa-address-book mr-1"></i> Contatos
+                        </button>
+                    </div>
                 </div>
                 <div>
                     <label class="text-xs text-slate-400 block mb-1">Nome do Cliente</label>
@@ -105,7 +113,7 @@
                     </div>
                 </div>
                 <div>
-                    <label class="text-xs text-slate-400 block mb-1">Endereço do Cliente (Opcional)</label>
+                    <label class="text-xs text-slate-400 block mb-1">Endereço do Cliente</label>
                     <input type="text" id="cli-endereco" placeholder="Ex: Rua das Flores, 123 - Centro" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
                 </div>
             </div>
@@ -120,12 +128,9 @@
                         <i class="fa-solid fa-plus mr-1"></i> Adicionar
                     </button>
                 </div>
-                
                 <div id="lista-itens" class="space-y-2 mb-4">
                     <p class="text-xs text-slate-500 text-center py-4 italic">Nenhum item adicionado ainda.</p>
                 </div>
-
-                <!-- DESCONTO -->
                 <div class="border-t border-slate-700 pt-3 space-y-2">
                     <div class="grid grid-cols-2 gap-2 items-center">
                         <div>
@@ -141,17 +146,9 @@
                         </div>
                     </div>
                 </div>
-
-                <!-- TOTAIS -->
                 <div class="border-t border-slate-700 mt-3 pt-3 space-y-1 text-xs">
-                    <div class="flex justify-between text-slate-400">
-                        <span>Subtotal:</span>
-                        <span id="subtotal-geral">R$ 0,00</span>
-                    </div>
-                    <div class="flex justify-between text-slate-400">
-                        <span>Desconto:</span>
-                        <span id="desconto-geral" class="text-red-400">R$ 0,00</span>
-                    </div>
+                    <div class="flex justify-between text-slate-400"><span>Subtotal:</span><span id="subtotal-geral">R$ 0,00</span></div>
+                    <div class="flex justify-between text-slate-400"><span>Desconto:</span><span id="desconto-geral" class="text-red-400">R$ 0,00</span></div>
                     <div class="flex justify-between items-center pt-2 border-t border-slate-700/50">
                         <span class="text-sm font-medium text-slate-300">Valor Total:</span>
                         <span class="text-lg font-bold text-amber-400" id="total-geral">R$ 0,00</span>
@@ -159,7 +156,7 @@
                 </div>
             </div>
 
-            <!-- FOTOS DO SERVIÇO (Até 4 fotos) -->
+            <!-- FOTOS DO SERVIÇO -->
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
                 <div class="flex justify-between items-center">
                     <label class="text-xs text-amber-400 font-semibold uppercase flex items-center">
@@ -210,24 +207,29 @@
                 </button>
             </div>
             <div class="grid grid-cols-2 gap-3 pt-1">
-                <button onclick="salvarDocumentoArquivo('pdf')" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-xl text-sm flex items-center justify-center space-x-2 shadow-lg transition">
-                    <i class="fa-solid fa-file-pdf text-base"></i>
-                    <span>Salvar PDF</span>
-                </button>
-                <button onclick="salvarDocumentoArquivo('img')" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl text-sm flex items-center justify-center space-x-2 shadow-lg transition">
-                    <i class="fa-solid fa-image text-base"></i>
-                    <span>Salvar Imagem</span>
-                </button>
+                <button onclick="salvarDocumentoArquivo('pdf')" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-xl text-sm flex items-center justify-center space-x-2 shadow-lg transition"><i class="fa-solid fa-file-pdf text-base"></i><span>Salvar PDF</span></button>
+                <button onclick="salvarDocumentoArquivo('img')" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl text-sm flex items-center justify-center space-x-2 shadow-lg transition"><i class="fa-solid fa-image text-base"></i><span>Salvar Imagem</span></button>
             </div>
             <div class="grid grid-cols-2 gap-3 pb-4">
-                <button onclick="abrirModalCompartilharWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl text-sm flex items-center justify-center space-x-2 shadow-lg transition">
-                    <i class="fa-brands fa-whatsapp text-lg"></i>
-                    <span>Enviar WhatsApp</span>
-                </button>
-                <button onclick="compartilharEmail()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl text-sm flex items-center justify-center space-x-2 shadow-lg transition">
-                    <i class="fa-solid fa-envelope text-base"></i>
-                    <span>Enviar E-mail</span>
-                </button>
+                <button onclick="abrirModalCompartilharWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl text-sm flex items-center justify-center space-x-2 shadow-lg transition"><i class="fa-brands fa-whatsapp text-lg"></i><span>Enviar WhatsApp</span></button>
+                <button onclick="compartilharEmail()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl text-sm flex items-center justify-center space-x-2 shadow-lg transition"><i class="fa-solid fa-envelope text-base"></i><span>Enviar E-mail</span></button>
+            </div>
+        </div>
+
+        <!-- ABA CLIENTES (NOVA ABA DE CADASTRO DE CLIENTES) -->
+        <div id="aba-clientes" class="space-y-4 tab-content hidden">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-users mr-2"></i> Cadastro de Clientes
+                    </h2>
+                    <button onclick="abrirModalNovoCliente()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-bold px-3 py-1.5 rounded-lg transition">
+                        <i class="fa-solid fa-plus mr-1"></i> Novo Cliente
+                    </button>
+                </div>
+                <div id="lista-clientes-cadastrados" class="space-y-2 pt-2">
+                    <!-- Lista de clientes salvos -->
+                </div>
             </div>
         </div>
 
@@ -242,13 +244,11 @@
                         <i class="fa-solid fa-plus"></i> Novo Serviço
                     </button>
                 </div>
-
                 <div class="flex space-x-1 bg-slate-900 p-1 rounded-lg text-xs font-semibold">
                     <button onclick="mudarFiltroAgenda('agenda')" id="filtro-btn-agenda" class="flex-1 py-2 rounded-md bg-amber-500 text-slate-900 transition font-bold">Agenda</button>
                     <button onclick="mudarFiltroAgenda('espera')" id="filtro-btn-espera" class="flex-1 py-2 rounded-md text-slate-400 transition">Em Espera</button>
                     <button onclick="mudarFiltroAgenda('executados')" id="filtro-btn-executados" class="flex-1 py-2 rounded-md text-slate-400 transition">Executados</button>
                 </div>
-
                 <div id="lista-compromissos" class="space-y-2 pt-2"></div>
             </div>
         </div>
@@ -259,7 +259,6 @@
                 <h2 class="text-sm font-semibold text-amber-400 mb-3 uppercase tracking-wider flex items-center">
                     <i class="fa-solid fa-box-open mr-2"></i> Catálogo de Materiais Elétricos
                 </h2>
-                <p class="text-xs text-slate-400 mb-3">Toque em qualquer item para adicioná-lo ao orçamento:</p>
                 <div class="space-y-2" id="catalogo-materiais"></div>
             </div>
         </div>
@@ -270,12 +269,11 @@
                 <h2 class="text-sm font-semibold text-amber-400 mb-3 uppercase tracking-wider flex items-center">
                     <i class="fa-solid fa-user-gear mr-2"></i> Catálogo de Mão de Obra
                 </h2>
-                <p class="text-xs text-slate-400 mb-3">Toque em qualquer serviço para adicioná-lo ao orçamento:</p>
                 <div class="space-y-2" id="catalogo-mao-obra"></div>
             </div>
         </div>
 
-        <!-- ABA 5: RELATÓRIO / SERVIÇOS FEITOS (CONTABILIZAÇÃO E SOMA) -->
+        <!-- ABA 5: RELATÓRIO / SERVIÇOS FEITOS -->
         <div id="aba-relatorio" class="space-y-4 tab-content hidden">
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
                 <h2 class="text-sm font-semibold text-emerald-400 uppercase tracking-wider flex items-center">
@@ -286,226 +284,63 @@
                         <p class="text-xs text-slate-400">Total Faturado / Executado</p>
                         <p class="text-lg font-bold text-emerald-400" id="faturamento-total-geral">R$ 0,00</p>
                     </div>
-                    <button onclick="carregarRelatorioServicos()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition">
-                        <i class="fa-solid fa-rotate mr-1"></i> Atualizar
-                    </button>
+                    <button onclick="carregarRelatorioServicos()" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition"><i class="fa-solid fa-rotate mr-1"></i> Atualizar</button>
                 </div>
-                <div id="lista-relatorio-servicos" class="space-y-2 pt-2">
-                    <!-- Lista detalhada dos serviços executados aparece aqui -->
-                </div>
+                <div id="lista-relatorio-servicos" class="space-y-2 pt-2"></div>
             </div>
         </div>
 
-        <!-- ABA 6: IA ASSISTENTE -->
-        <div id="aba-ia" class="flex flex-col h-[calc(100vh-160px)] tab-content hidden">
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 mb-2 flex justify-between items-center">
-                <span class="text-xs text-slate-300"><i class="fa-solid fa-robot text-amber-400 mr-1"></i> Assistente IA de Preços & Normas</span>
-                <button onclick="limparChat()" class="text-xs text-slate-400 hover:text-red-400"><i class="fa-solid fa-trash"></i> Limpar</button>
-            </div>
-            <div id="chat-mensagens" class="flex-1 overflow-y-auto space-y-3 p-2 bg-slate-900/50 rounded-xl border border-slate-800 text-sm">
-                <div class="bg-slate-800 p-3 rounded-xl max-w-[85%] border border-slate-700">
-                    <p class="text-xs text-slate-300">Olá! Pergunte sobre valores de mão de obra elétrica, normas NBR 5410 ou custos de materiais.</p>
-                </div>
-            </div>
-            <div class="mt-2 flex space-x-2">
-                <input type="text" id="chat-input" placeholder="Ex: Qual o valor médio para instalar disjuntor DR?" class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
-                <button onclick="enviarMensagemIA()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-4 rounded-xl font-bold transition">
-                    <i class="fa-solid fa-paper-plane"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- ABA 7: CONFIGURAÇÕES E EMPRESA -->
+        <!-- ABA 6: CONFIGURAÇÕES -->
         <div id="aba-config" class="space-y-4 tab-content hidden">
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
                 <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center">
                     <i class="fa-solid fa-building mr-2"></i> Dados da Sua Empresa
                 </h2>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Nome da Empresa / Profissional</label>
-                    <input type="text" id="emp-nome" placeholder="Ex: André Carraro Instalações" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                </div>
+                <div><label class="text-xs text-slate-400 block mb-1">Nome da Empresa / Profissional</label><input type="text" id="emp-nome" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500"></div>
                 <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">CNPJ / CPF</label>
-                        <input type="text" id="emp-doc" placeholder="00.000.000/0001-00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Telefone de Contato</label>
-                        <input type="text" id="emp-fone" placeholder="(11) 99999-9999" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                    </div>
+                    <div><label class="text-xs text-slate-400 block mb-1">CNPJ / CPF</label><input type="text" id="emp-doc" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500"></div>
+                    <div><label class="text-xs text-slate-400 block mb-1">Telefone</label><input type="text" id="emp-fone" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500"></div>
                 </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Link do Site ou WhatsApp (Para o QR Code)</label>
-                    <input type="text" id="emp-link-qr" placeholder="https://wa.me/5511999999999" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Logotipo da Empresa</label>
-                    <input type="file" id="emp-logo-file" accept="image/*" onchange="carregarLogoEmpresa(event)" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-500 file:text-slate-900 hover:file:bg-amber-600 cursor-pointer">
-                </div>
-                <button onclick="salvarDadosEmpresa()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-2.5 rounded-xl text-sm transition">
-                    Salvar Dados da Empresa
-                </button>
+                <div><label class="text-xs text-slate-400 block mb-1">Link do Site ou WhatsApp (QR Code)</label><input type="text" id="emp-link-qr" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500"></div>
+                <div><label class="text-xs text-slate-400 block mb-1">Logotipo da Empresa</label><input type="file" id="emp-logo-file" accept="image/*" onchange="carregarLogoEmpresa(event)" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-500 file:text-slate-900 cursor-pointer"></div>
+                <button onclick="salvarDadosEmpresa()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-2.5 rounded-xl text-sm transition">Salvar Dados da Empresa</button>
             </div>
-
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
-                <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center">
-                    <i class="fa-solid fa-shield-halved mr-2"></i> Permissões do Sistema Android
-                </h2>
-                <button onclick="solicitarPermissoesAndroid()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center space-x-2">
-                    <i class="fa-solid fa-key"></i>
-                    <span>Permitir Acessos do Sistema</span>
-                </button>
-                <div id="status-permissao" class="text-xs text-center text-slate-400">Status: Verificado</div>
-            </div>
-
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
-                <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center">
-                    <i class="fa-solid fa-key mr-2"></i> Chave de API Google Gemini
-                </h2>
-                <input type="password" id="input-api-key" placeholder="Cole sua API Key do Google AI Studio..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                <button onclick="salvarApiKey()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 rounded-xl text-sm transition">
-                    Salvar Chave
-                </button>
+                <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center"><i class="fa-solid fa-key mr-2"></i> Chave de API Google Gemini</h2>
+                <input type="password" id="input-api-key" placeholder="Cole sua API Key..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
+                <button onclick="salvarApiKey()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 rounded-xl text-sm transition">Salvar Chave</button>
             </div>
         </div>
     </main>
 
-    <!-- MODAL DE PRÉ-VISUALIZAÇÃO -->
+    <!-- MODAL CADASTRAR NOVO CLIENTE -->
+    <div id="modal-cliente" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50 overflow-y-auto">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-3 shadow-2xl my-auto">
+            <h3 class="font-bold text-base text-amber-400">Salvar Novo Cliente</h3>
+            <div class="space-y-2.5">
+                <div><label class="text-xs text-slate-400 block mb-1">Nome do Cliente</label><input type="text" id="cad-cli-nome" placeholder="Ex: Carlos Alberto" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500"></div>
+                <div><label class="text-xs text-slate-400 block mb-1">Telefone / WhatsApp</label><input type="text" id="cad-cli-fone" placeholder="(11) 99999-9999" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500"></div>
+                <div><label class="text-xs text-slate-400 block mb-1">Endereço Completo</label><input type="text" id="cad-cli-endereco" placeholder="Ex: Rua A, 45 - Bairro" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500"></div>
+            </div>
+            <div class="flex space-x-2 pt-2">
+                <button onclick="fecharModalNovoCliente()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-2.5 rounded-xl text-sm font-semibold transition">Cancelar</button>
+                <button onclick="salvarClienteCadastrado()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-900 py-2.5 rounded-xl text-sm font-bold transition">Salvar Cliente</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SELECIONAR CLIENTE SALVO PARA O DOCUMENTO -->
+    <div id="modal-selecionar-cliente" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50 overflow-y-auto">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-3 shadow-2xl my-auto">
+            <h3 class="font-bold text-base text-amber-400">Selecionar Cliente Salvo</h3>
+            <div id="lista-modal-clientes-salvos" class="space-y-2 max-h-60 overflow-y-auto"></div>
+            <button onclick="fecharModalSelecionarClienteSalvo()" class="w-full bg-slate-700 hover:bg-slate-600 py-2.5 rounded-xl text-sm font-semibold transition mt-2">Fechar</button>
+        </div>
+    </div>
+
+    <!-- MODAL PRÉ-VISUALIZAÇÃO -->
     <div id="modal-preview" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden flex-col z-50 overflow-y-auto p-4">
         <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg mx-auto my-auto p-4 space-y-4 shadow-2xl">
             <div class="flex justify-between items-center border-b border-slate-700 pb-3">
-                <h3 class="font-bold text-base text-amber-400"><i class="fa-solid fa-eye mr-2"></i> Pré-visualização do Documento</h3>
-                <button onclick="fecharPreVisualizacao()" class="text-slate-400 hover:text-white p-2"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-            <div id="preview-container-content" class="bg-white text-slate-900 p-4 rounded-xl overflow-x-auto max-h-[60vh]"></div>
-            <div class="flex space-x-2 pt-2">
-                <button onclick="fecharPreVisualizacao()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-xl text-sm font-semibold transition text-white">Voltar e Editar</button>
-                <button onclick="fecharPreVisualizacao(); salvarDocumentoArquivo('pdf')" class="flex-1 bg-red-600 hover:bg-red-700 py-3 rounded-xl text-sm font-bold transition text-white">Salvar PDF</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL ADICIONAR ITEM -->
-    <div id="modal-item" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
-            <h3 class="font-bold text-base text-amber-400">Adicionar Material ou Mão de Obra</h3>
-            <div class="space-y-3">
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Selecionar do Catálogo de Materiais</label>
-                    <select id="modal-select-materiais" onchange="selecionarMaterialModal()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-amber-400 focus:outline-none focus:border-amber-500">
-                        <option value="">-- Escolher material --</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Selecionar do Catálogo de Mão de Obra</label>
-                    <select id="modal-select-mao-obra" onchange="selecionarMaoObraModal()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-amber-400 focus:outline-none focus:border-amber-500">
-                        <option value="">-- Escolher serviço --</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Descrição</label>
-                    <input type="text" id="modal-desc" placeholder="Ex: Cabo Flexível 4mm²" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Quantidade</label>
-                        <input type="number" id="modal-qtd" value="1" min="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Valor Unitário (R$)</label>
-                        <input type="number" step="0.01" id="modal-valor" placeholder="0,00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                    </div>
-                </div>
-            </div>
-            <div class="flex space-x-2 pt-2">
-                <button onclick="fecharModalItem()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-2.5 rounded-xl text-sm font-semibold transition">Cancelar</button>
-                <button onclick="adicionarItemOrcamento()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-900 py-2.5 rounded-xl text-sm font-bold transition">Adicionar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL AGENDAR / SERVIÇO -->
-    <div id="modal-servico-status" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50 overflow-y-auto">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-3 shadow-2xl my-auto">
-            <h3 class="font-bold text-base text-amber-400">Cadastrar Serviço na Agenda</h3>
-            <div class="space-y-2.5">
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Título do Serviço</label>
-                    <input type="text" id="srv-titulo" placeholder="Ex: Manutenção QGBT" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Nome do Cliente</label>
-                    <input type="text" id="srv-cliente" placeholder="Ex: Maria Oliveira" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Telefone / Whats</label>
-                        <input type="text" id="srv-fone" placeholder="(11) 99999-9999" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Data Agendada</label>
-                        <input type="date" id="srv-data" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                    </div>
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Endereço do Local</label>
-                    <input type="text" id="srv-endereco" placeholder="Ex: Av. Paulista, 1000" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Status do Serviço</label>
-                    <select id="srv-status" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-amber-500">
-                        <option value="agenda">Na Agenda</option>
-                        <option value="espera">Em Espera</option>
-                        <option value="executados">Executado</option>
-                    </select>
-                </div>
-            </div>
-            <div class="flex space-x-2 pt-2">
-                <button onclick="fecharModalServicoStatus()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-2.5 rounded-xl text-sm font-semibold transition">Cancelar</button>
-                <button onclick="salvarNovoServicoAgenda()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-900 py-2.5 rounded-xl text-sm font-bold transition">Salvar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL WHATSAPP -->
-    <div id="modal-whatsapp" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl text-center">
-            <h3 class="font-bold text-base text-amber-400"><i class="fa-brands fa-whatsapp text-emerald-400"></i> Enviar pelo WhatsApp</h3>
-            <p class="text-xs text-slate-400">Escolha como deseja enviar o documento:</p>
-            <div class="space-y-2 pt-2">
-                <button onclick="enviarWhatsAppTexto()" class="w-full bg-slate-900 hover:bg-slate-700 border border-slate-700 py-3 rounded-xl text-xs font-semibold text-slate-200 transition">Enviar Resumo em Texto</button>
-                <button onclick="enviarDiretoWhatsApp('pdf')" class="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl text-xs font-bold text-white transition flex items-center justify-center space-x-2"><i class="fa-solid fa-file-pdf"></i> <span>Enviar Direto em PDF</span></button>
-                <button onclick="enviarDiretoWhatsApp('img')" class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl text-xs font-bold text-white transition flex items-center justify-center space-x-2"><i class="fa-solid fa-image"></i> <span>Enviar Direto em Imagem</span></button>
-            </div>
-            <button onclick="fecharModalWhatsApp()" class="w-full bg-slate-700 hover:bg-slate-600 py-2 rounded-xl text-xs text-slate-300 transition mt-2">Cancelar</button>
-        </div>
-    </div>
-
-    <!-- MENU INFERIOR DE NAVEGAÇÃO FIXO -->
-    <nav class="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 flex justify-around py-3 z-50 shadow-2xl">
-        <button onclick="mudarAba('menu')" id="nav-btn-menu" class="flex flex-col items-center text-amber-400 transition">
-            <i class="fa-solid fa-house text-lg"></i>
-            <span class="text-[10px] mt-1 font-medium">Início</span>
-        </button>
-        <button onclick="mudarAba('orcamento')" id="nav-btn-orcamento" class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition">
-            <i class="fa-solid fa-file-invoice-dollar text-lg"></i>
-            <span class="text-[10px] mt-1 font-medium">Documento</span>
-        </button>
-        <button onclick="mudarAba('agenda')" id="nav-btn-agenda" class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition">
-            <i class="fa-solid fa-calendar-days text-lg"></i>
-            <span class="text-[10px] mt-1 font-medium">Agenda</span>
-        </button>
-        <button onclick="mudarAba('relatorio')" id="nav-btn-relatorio" class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition">
-            <i class="fa-solid fa-chart-line text-lg"></i>
-            <span class="text-[10px] mt-1 font-medium">Feitos</span>
-        </button>
-        <button onclick="mudarAba('config')" id="nav-btn-config" class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition">
-            <i class="fa-solid fa-gear text-lg"></i>
-            <span class="text-[10px] mt-1 font-medium">Empresa</span>
-        </button>
-    </nav>
-
-    <script src="app.js"></script>
-</body>
-</html>
+                <h3 class="font-bold text-base text-amber-400"><i class="fa-solid fa-eye mr-2"></i> Pré-visualização</h3>
+                <button onclick="fecharPreVisualizacao()" class="text-slate-400 hover:text-white p-2"><i class="fa-solid fa-
