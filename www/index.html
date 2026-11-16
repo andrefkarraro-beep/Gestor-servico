@@ -45,11 +45,16 @@
                 </select>
             </div>
 
-            <!-- Dados do Cliente -->
+            <!-- Dados do Cliente + Botão Buscar da Agenda/Contatos -->
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
-                <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center">
-                    <i class="fa-solid fa-user-pen mr-2"></i> Dados do Cliente
-                </h2>
+                <div class="flex justify-between items-center">
+                    <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-user-pen mr-2"></i> Dados do Cliente
+                    </h2>
+                    <button onclick="importarContatoAgenda()" class="bg-slate-700 hover:bg-slate-600 text-amber-400 text-xs font-semibold px-2.5 py-1 rounded-lg transition flex items-center">
+                        <i class="fa-solid fa-address-book mr-1.5"></i> Contatos
+                    </button>
+                </div>
                 <div>
                     <label class="text-xs text-slate-400 block mb-1">Nome do Cliente</label>
                     <input type="text" id="cli-nome" placeholder="Ex: João da Silva" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
@@ -63,6 +68,10 @@
                         <label class="text-xs text-slate-400 block mb-1">Data</label>
                         <input type="date" id="cli-data" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
                     </div>
+                </div>
+                <div>
+                    <label class="text-xs text-slate-400 block mb-1">Endereço do Cliente (Opcional)</label>
+                    <input type="text" id="cli-endereco" placeholder="Ex: Rua das Flores, 123 - Centro" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
                 </div>
             </div>
 
@@ -115,295 +124,28 @@
                 </div>
             </div>
 
+            <!-- FOTOS DO SERVIÇO (Até 4 fotos) -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
+                <div class="flex justify-between items-center">
+                    <label class="text-xs text-amber-400 font-semibold uppercase flex items-center">
+                        <i class="fa-solid fa-camera mr-1.5"></i> Fotos do Serviço (Máx. 4)
+                    </label>
+                    <span id="contador-fotos" class="text-xs text-slate-400">0/4 fotos</span>
+                </div>
+                <div class="grid grid-cols-4 gap-2" id="container-fotos-preview">
+                    <!-- Miniaturas das fotos aparecem aqui -->
+                </div>
+                <div>
+                    <input type="file" id="input-fotos-servico" accept="image/*" multiple onchange="adicionarFotosServico(event)" class="hidden">
+                    <button onclick="document.getElementById('input-fotos-servico').click()" class="w-full bg-slate-700 hover:bg-slate-600 text-amber-400 font-semibold py-2.5 rounded-xl text-xs transition flex items-center justify-center space-x-2 border border-slate-600">
+                        <i class="fa-solid fa-plus-circle text-sm"></i>
+                        <span>Adicionar Fotos (Câmera ou Galeria)</span>
+                    </button>
+                </div>
+            </div>
+
             <!-- FORMA DE PAGAMENTO -->
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-2">
                 <label class="text-xs text-slate-400 block font-semibold uppercase">Forma de Pagamento</label>
                 <select id="pagamento-forma" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                    <option value="Pix">Pix</option>
-                    <option value="Dinheiro">Dinheiro</option>
-                    <option value="Cartão de Crédito">Cartão de Crédito</option>
-                    <option value="Cartão de Débito">Cartão de Débito</option>
-                    <option value="Boleto Bancário">Boleto Bancário</option>
-                </select>
-            </div>
-
-            <!-- BLOCO DE ASSINATURA DIGITAL DO TÉCNICO -->
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-2">
-                <div class="flex justify-between items-center">
-                    <label class="text-xs text-amber-400 font-semibold uppercase flex items-center">
-                        <i class="fa-solid fa-signature mr-1"></i> Assinatura do Técnico (Toque para assinar)
-                    </label>
-                    <button onclick="limparAssinaturaTecnico()" class="text-xs text-red-400 hover:text-red-300">Limpar</button>
-                </div>
-                <div class="bg-white rounded-lg overflow-hidden border border-slate-700 touch-none">
-                    <canvas id="canvas-assinatura" height="100" class="w-full cursor-crosshair"></canvas>
-                </div>
-            </div>
-
-            <!-- BOTÕES DE AÇÃO -->
-            <div class="grid grid-cols-2 gap-3 pt-2">
-                <button onclick="salvarDocumentoArquivo('pdf')" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-xl text-sm flex items-center justify-center space-x-2 shadow-lg transition">
-                    <i class="fa-solid fa-file-pdf text-base"></i>
-                    <span>Salvar PDF</span>
-                </button>
-                <button onclick="salvarDocumentoArquivo('img')" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-xl text-sm flex items-center justify-center space-x-2 shadow-lg transition">
-                    <i class="fa-solid fa-image text-base"></i>
-                    <span>Salvar Imagem</span>
-                </button>
-            </div>
-            <div class="grid grid-cols-2 gap-3 pb-4">
-                <button onclick="abrirModalCompartilharWhatsApp()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-xl text-sm flex items-center justify-center space-x-2 shadow-lg transition">
-                    <i class="fa-brands fa-whatsapp text-lg"></i>
-                    <span>Enviar WhatsApp</span>
-                </button>
-                <button onclick="compartilharEmail()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl text-sm flex items-center justify-center space-x-2 shadow-lg transition">
-                    <i class="fa-solid fa-envelope text-base"></i>
-                    <span>Enviar E-mail</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- ABA 2: AGENDA E SERVIÇOS -->
-        <div id="aba-agenda" class="space-y-4 tab-content hidden">
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center">
-                        <i class="fa-solid fa-calendar-days mr-2"></i> Gestão de Serviços & Agenda
-                    </h2>
-                    <button onclick="abrirModalServicoStatus()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-bold px-3 py-1.5 rounded-lg transition">
-                        <i class="fa-solid fa-plus"></i> Novo Serviço
-                    </button>
-                </div>
-
-                <div class="flex space-x-1 bg-slate-900 p-1 rounded-lg text-xs font-semibold">
-                    <button onclick="mudarFiltroAgenda('agenda')" id="filtro-btn-agenda" class="flex-1 py-2 rounded-md bg-amber-500 text-slate-900 transition font-bold">Agenda</button>
-                    <button onclick="mudarFiltroAgenda('espera')" id="filtro-btn-espera" class="flex-1 py-2 rounded-md text-slate-400 transition">Em Espera</button>
-                    <button onclick="mudarFiltroAgenda('executados')" id="filtro-btn-executados" class="flex-1 py-2 rounded-md text-slate-400 transition">Executados</button>
-                </div>
-
-                <div id="lista-compromissos" class="space-y-2 pt-2"></div>
-            </div>
-        </div>
-
-        <!-- ABA 3: CATÁLOGO DE MATERIAIS -->
-        <div id="aba-materiais" class="space-y-4 tab-content hidden">
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm">
-                <h2 class="text-sm font-semibold text-amber-400 mb-3 uppercase tracking-wider flex items-center">
-                    <i class="fa-solid fa-box-open mr-2"></i> Catálogo de Materiais Elétricos
-                </h2>
-                <p class="text-xs text-slate-400 mb-3">Toque em qualquer item para adicioná-lo ao orçamento:</p>
-                <div class="space-y-2" id="catalogo-materiais"></div>
-            </div>
-        </div>
-
-        <!-- ABA 4: CATÁLOGO DE MÃO DE OBRA -->
-        <div id="aba-mao-obra" class="space-y-4 tab-content hidden">
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm">
-                <h2 class="text-sm font-semibold text-amber-400 mb-3 uppercase tracking-wider flex items-center">
-                    <i class="fa-solid fa-user-gear mr-2"></i> Catálogo de Mão de Obra
-                </h2>
-                <p class="text-xs text-slate-400 mb-3">Toque em qualquer serviço para adicioná-lo ao orçamento:</p>
-                <div class="space-y-2" id="catalogo-mao-obra"></div>
-            </div>
-        </div>
-
-        <!-- ABA 5: IA ASSISTENTE -->
-        <div id="aba-ia" class="flex flex-col h-[calc(100vh-160px)] tab-content hidden">
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-3 mb-2 flex justify-between items-center">
-                <span class="text-xs text-slate-300"><i class="fa-solid fa-robot text-amber-400 mr-1"></i> Assistente IA de Preços & Normas</span>
-                <button onclick="limparChat()" class="text-xs text-slate-400 hover:text-red-400"><i class="fa-solid fa-trash"></i> Limpar</button>
-            </div>
-            <div id="chat-mensagens" class="flex-1 overflow-y-auto space-y-3 p-2 bg-slate-900/50 rounded-xl border border-slate-800 text-sm">
-                <div class="bg-slate-800 p-3 rounded-xl max-w-[85%] border border-slate-700">
-                    <p class="text-xs text-slate-300">Olá! Pergunte sobre valores de mão de obra elétrica, normas NBR 5410 ou custos de materiais.</p>
-                </div>
-            </div>
-            <div class="mt-2 flex space-x-2">
-                <input type="text" id="chat-input" placeholder="Ex: Qual o valor médio para instalar disjuntor DR?" class="flex-1 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500">
-                <button onclick="enviarMensagemIA()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 px-4 rounded-xl font-bold transition">
-                    <i class="fa-solid fa-paper-plane"></i>
-                </button>
-            </div>
-        </div>
-
-        <!-- ABA 6: CONFIGURAÇÕES E EMPRESA -->
-        <div id="aba-config" class="space-y-4 tab-content hidden">
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
-                <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center">
-                    <i class="fa-solid fa-building mr-2"></i> Dados da Sua Empresa
-                </h2>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Nome da Empresa / Profissional</label>
-                    <input type="text" id="emp-nome" placeholder="Ex: André Carraro Instalações" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">CNPJ / CPF</label>
-                        <input type="text" id="emp-doc" placeholder="00.000.000/0001-00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Telefone de Contato</label>
-                        <input type="text" id="emp-fone" placeholder="(11) 99999-9999" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                    </div>
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Link do Site ou WhatsApp (Para o QR Code)</label>
-                    <input type="text" id="emp-link-qr" placeholder="https://wa.me/5511999999999" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                </div>
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Logotipo da Empresa</label>
-                    <input type="file" id="emp-logo-file" accept="image/*" onchange="carregarLogoEmpresa(event)" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-amber-500 file:text-slate-900 hover:file:bg-amber-600 cursor-pointer">
-                </div>
-                <button onclick="salvarDadosEmpresa()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-2.5 rounded-xl text-sm transition">
-                    Salvar Dados da Empresa
-                </button>
-            </div>
-
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
-                <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center">
-                    <i class="fa-solid fa-shield-halved mr-2"></i> Permissões do Sistema Android
-                </h2>
-                <button onclick="solicitarPermissoesAndroid()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-2.5 rounded-xl text-sm transition flex items-center justify-center space-x-2">
-                    <i class="fa-solid fa-key"></i>
-                    <span>Permitir Acessos do Sistema</span>
-                </button>
-                <div id="status-permissao" class="text-xs text-center text-slate-400">Status: Verificado</div>
-            </div>
-
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
-                <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center">
-                    <i class="fa-solid fa-key mr-2"></i> Chave de API Google Gemini
-                </h2>
-                <input type="password" id="input-api-key" placeholder="Cole sua API Key do Google AI Studio..." class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                <button onclick="salvarApiKey()" class="w-full bg-slate-700 hover:bg-slate-600 text-white font-semibold py-2 rounded-xl text-sm transition">
-                    Salvar Chave
-                </button>
-            </div>
-        </div>
-    </main>
-
-    <!-- MODAL ADICIONAR ITEM COM OPÇÃO DOS DOIS CATÁLOGOS -->
-    <div id="modal-item" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
-            <h3 class="font-bold text-base text-amber-400">Adicionar Material ou Mão de Obra</h3>
-            
-            <div class="space-y-3">
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Selecionar do Catálogo de Materiais</label>
-                    <select id="modal-select-materiais" onchange="selecionarMaterialModal()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-amber-400 focus:outline-none focus:border-amber-500">
-                        <option value="">-- Escolher material --</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Selecionar do Catálogo de Mão de Obra</label>
-                    <select id="modal-select-mao-obra" onchange="selecionarMaoObraModal()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-amber-400 focus:outline-none focus:border-amber-500">
-                        <option value="">-- Escolher serviço --</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Descrição</label>
-                    <input type="text" id="modal-desc" placeholder="Ex: Cabo Flexível 4mm² (metro)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Quantidade</label>
-                        <input type="number" id="modal-qtd" value="1" min="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Valor Unitário (R$)</label>
-                        <input type="number" step="0.01" id="modal-valor" placeholder="0,00" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                    </div>
-                </div>
-            </div>
-            <div class="flex space-x-2 pt-2">
-                <button onclick="fecharModalItem()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-2.5 rounded-xl text-sm font-semibold transition">Cancelar</button>
-                <button onclick="adicionarItemOrcamento()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-900 py-2.5 rounded-xl text-sm font-bold transition">Adicionar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL AGENDAR / NOVO SERVIÇO -->
-    <div id="modal-servico-status" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
-            <h3 class="font-bold text-base text-amber-400">Registrar na Agenda / Status</h3>
-            <div class="space-y-3">
-                <div>
-                    <label class="text-xs text-slate-400 block mb-1">Cliente / Serviço</label>
-                    <input type="text" id="srv-titulo" placeholder="Ex: Manutenção QGBT" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Data</label>
-                        <input type="date" id="srv-data" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
-                    </div>
-                    <div>
-                        <label class="text-xs text-slate-400 block mb-1">Status</label>
-                        <select id="srv-status" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-2 text-sm focus:outline-none focus:border-amber-500">
-                            <option value="agenda">Na Agenda</option>
-                            <option value="espera">Em Espera</option>
-                            <option value="executados">Executado</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="flex space-x-2 pt-2">
-                <button onclick="fecharModalServicoStatus()" class="flex-1 bg-slate-700 hover:bg-slate-600 py-2.5 rounded-xl text-sm font-semibold transition">Cancelar</button>
-                <button onclick="salvarNovoServicoAgenda()" class="flex-1 bg-amber-500 hover:bg-amber-600 text-slate-900 py-2.5 rounded-xl text-sm font-bold transition">Salvar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL ESCOLHER FORMATO WHATSAPP -->
-    <div id="modal-whatsapp" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
-        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl text-center">
-            <h3 class="font-bold text-base text-amber-400"><i class="fa-brands fa-whatsapp text-emerald-400"></i> Enviar pelo WhatsApp</h3>
-            <p class="text-xs text-slate-400">Escolha como deseja enviar o documento:</p>
-            <div class="space-y-2 pt-2">
-                <button onclick="enviarWhatsAppTexto()" class="w-full bg-slate-900 hover:bg-slate-700 border border-slate-700 py-3 rounded-xl text-xs font-semibold text-slate-200 transition">
-                    Enviar Resumo em Texto
-                </button>
-                <button onclick="enviarDiretoWhatsApp('pdf')" class="w-full bg-emerald-600 hover:bg-emerald-700 py-3 rounded-xl text-xs font-bold text-white transition flex items-center justify-center space-x-2">
-                    <i class="fa-solid fa-file-pdf"></i> <span>Enviar Direto em PDF (WhatsApp)</span>
-                </button>
-                <button onclick="enviarDiretoWhatsApp('img')" class="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl text-xs font-bold text-white transition flex items-center justify-center space-x-2">
-                    <i class="fa-solid fa-image"></i> <span>Enviar Direto em Imagem (WhatsApp)</span>
-                </button>
-            </div>
-            <button onclick="fecharModalWhatsApp()" class="w-full bg-slate-700 hover:bg-slate-600 py-2 rounded-xl text-xs text-slate-300 transition mt-2">Cancelar</button>
-        </div>
-    </div>
-
-    <!-- MENU INFERIOR DE NAVEGAÇÃO -->
-    <nav class="absolute bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 flex justify-around py-2.5 z-10 shadow-lg">
-        <button onclick="mudarAba('orcamento')" id="nav-btn-orcamento" class="flex flex-col items-center text-amber-400 transition">
-            <i class="fa-solid fa-file-invoice-dollar text-lg"></i>
-            <span class="text-[10px] mt-1 font-medium">Documento</span>
-        </button>
-        <button onclick="mudarAba('agenda')" id="nav-btn-agenda" class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition">
-            <i class="fa-solid fa-calendar-days text-lg"></i>
-            <span class="text-[10px] mt-1 font-medium">Agenda</span>
-        </button>
-        <button onclick="mudarAba('materiais')" id="nav-btn-materiais" class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition">
-            <i class="fa-solid fa-box-open text-lg"></i>
-            <span class="text-[10px] mt-1 font-medium">Materiais</span>
-        </button>
-        <button onclick="mudarAba('mao-obra')" id="nav-btn-mao-obra" class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition">
-            <i class="fa-solid fa-user-gear text-lg"></i>
-            <span class="text-[10px] mt-1 font-medium">Mão Obra</span>
-        </button>
-        <button onclick="mudarAba('ia')" id="nav-btn-ia" class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition">
-            <i class="fa-solid fa-robot text-lg"></i>
-            <span class="text-[10px] mt-1 font-medium">IA</span>
-        </button>
-        <button onclick="mudarAba('config')" id="nav-btn-config" class="flex flex-col items-center text-slate-400 hover:text-slate-200 transition">
-            <i class="fa-solid fa-gear text-lg"></i>
-            <span class="text-[10px] mt-1 font-medium">Empresa</span>
-        </button>
-    </nav>
-
-    <!-- SCRIPT -->
-    <script src="app.js"></script>
-</body>
-</html>
+                    <option value="Pix">Pix</
