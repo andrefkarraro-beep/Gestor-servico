@@ -1,0 +1,18 @@
+{
+  "name": "gestor-servicos",
+  "version": "1.0.0",
+  "description": "Gestor de Serviços e Orçamentos Elétricos",
+  "main": "index.js",
+  "scripts": {
+    "build": "echo 'No build required for static assets'"
+  },
+  "dependencies": {
+    "@capacitor/android": "^6.0.0",
+    "@capacitor/core": "^6.0.0",
+    "@capacitor/filesystem": "^6.0.0",
+    "@capacitor/share": "^6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^6.0.0"
+  }
+}
