@@ -1,0 +1,13 @@
+{
+  "appId": "com.gestor.servicos.app",
+  "appName": "Gestor Serviços",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 1500,
+      "backgroundColor": "#1e293b",
+      "showSpinner": false
+    }
+  }
+}
