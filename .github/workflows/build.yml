@@ -18,17 +18,12 @@ jobs:
         with:
           node-version: 18
 
-      - name: Instalar Dependências e Capacitor
-        run: |
-          npm install
-          npx cap init --force
+      - name: Instalar Dependências
+        run: npm install
 
-      - name: Adicionar Plataforma Android
+      - name: Adicionar e Sincronizar Plataforma Android
         run: |
-          npx cap add android
-
-      - name: Sincronizar Projeto Web com Android
-        run: |
+          npx cap add android || true
           npx cap sync android
 
       - name: Configurar Java (JDK 17)
