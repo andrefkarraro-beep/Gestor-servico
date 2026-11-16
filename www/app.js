@@ -3,6 +3,8 @@ let compromissos = JSON.parse(localStorage.getItem('gestor_compromissos') || '[]
 let filtroAtualAgenda = 'agenda';
 let logoBase64Empresa = localStorage.getItem('gestor_logo_b64') || '';
 
+let canvasAssinatura, ctxAssinatura, desenhando = false;
+
 let catalogoEletrica = [
     { desc: "Instalação de Disjuntor / DR / DPS", valor: 120.00 },
     { desc: "Montagem e Cabeamento de Quadro Elétrico (QGBT)", valor: 450.00 },
@@ -21,7 +23,55 @@ document.addEventListener('DOMContentLoaded', () => {
     carregarApiKeySalva();
     carregarDadosEmpresaNaTela();
     renderizarCompromissos();
+    inicializarCanvasAssinatura();
 });
+
+// Inicialização do Quadro de Assinatura do Técnico
+function inicializarCanvasAssinatura() {
+    canvasAssinatura = document.getElementById('canvas-assinatura');
+    if (!canvasAssinatura) return;
+    ctxAssinatura = canvasAssinatura.getContext('2d');
+
+    canvasAssinatura.width = canvasAssinatura.offsetWidth || 300;
+    canvasAssinatura.height = 100;
+
+    ctxAssinatura.strokeStyle = '#000000';
+    ctxAssinatura.lineWidth = 2;
+    ctxAssinatura.lineCap = 'round';
+
+    canvasAssinatura.addEventListener('mousedown', iniciarDesenho);
+    canvasAssinatura.addEventListener('mousemove', desenhar);
+    canvasAssinatura.addEventListener('mouseup', pararDesenho);
+    canvasAssinatura.addEventListener('mouseleave', pararDesenho);
+
+    canvasAssinatura.addEventListener('touchstart', (e) => { e.preventDefault(); iniciarDesenho(e.touches[0]); });
+    canvasAssinatura.addEventListener('touchmove', (e) => { e.preventDefault(); desenhar(e.touches[0]); });
+    canvasAssinatura.addEventListener('touchend', (e) => { e.preventDefault(); pararDesenho(); });
+}
+
+function iniciarDesenho(e) {
+    desenhando = true;
+    const rect = canvasAssinatura.getBoundingClientRect();
+    ctxAssinatura.beginPath();
+    ctxAssinatura.moveTo(e.clientX - rect.left, e.clientY - rect.top);
+}
+
+function desenhar(e) {
+    if (!desenhando) return;
+    const rect = canvasAssinatura.getBoundingClientRect();
+    ctxAssinatura.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+    ctxAssinatura.stroke();
+}
+
+function pararDesenho() {
+    desenhando = false;
+}
+
+function limparAssinaturaTecnico() {
+    if (ctxAssinatura && canvasAssinatura) {
+        ctxAssinatura.clearRect(0, 0, canvasAssinatura.width, canvasAssinatura.height);
+    }
+}
 
 // Navegação entre Abas
 function mudarAba(abaId) {
@@ -81,7 +131,7 @@ function carregarDadosEmpresaNaTela() {
     if(localStorage.getItem('emp_link_qr')) document.getElementById('emp-link-qr').value = localStorage.getItem('emp_link_qr');
 }
 
-// Catálogo Elétrica
+// Catálogo de Elétrica
 function carregarCatalogo() {
     const container = document.getElementById('catalogo-padrao');
     container.innerHTML = '';
@@ -168,13 +218,7 @@ function atualizarTabelaOrcamento() {
 
     const descTipo = document.getElementById('desc-tipo').value;
     const descValorInput = parseFloat(document.getElementById('desc-valor').value) || 0;
-    let descontoCalculado = 0;
-
-    if (descTipo === 'rs') {
-        descontoCalculado = descValorInput;
-    } else {
-        descontoCalculado = (subtotalGeral * descValorInput) / 100;
-    }
+    let descontoCalculado = descTipo === 'rs' ? descValorInput : (subtotalGeral * descValorInput) / 100;
 
     let totalFinal = subtotalGeral - descontoCalculado;
     if (totalFinal < 0) totalFinal = 0;
@@ -234,11 +278,10 @@ function removerCompromisso(id) {
 function renderizarCompromissos() {
     const container = document.getElementById('lista-compromissos');
     container.innerHTML = '';
-
     const filtrados = compromissos.filter(c => c.status === filtroAtualAgenda);
 
     if (filtrados.length === 0) {
-        container.innerHTML = `<p class="text-xs text-slate-500 text-center py-4 italic">Nenhum registro encontrado nesta categoria.</p>`;
+        container.innerHTML = `<p class="text-xs text-slate-500 text-center py-4 italic">Nenhum registro encontrado.</p>`;
         return;
     }
 
@@ -255,21 +298,20 @@ function renderizarCompromissos() {
     });
 }
 
-// Permissões Android
 async function solicitarPermissoesAndroid() {
     const statusDiv = document.getElementById('status-permissao');
-    statusDiv.innerText = "Status: Solicitando permissões do sistema...";
+    statusDiv.innerText = "Status: Solicitando permissões...";
     try {
         if (window.Capacitor && window.Capacitor.Plugins.Filesystem) {
             await window.Capacitor.Plugins.Filesystem.requestPermissions();
         }
-        statusDiv.innerHTML = "<span class='text-emerald-400 font-bold'>Status: Acessos concedidos com sucesso pelo Android!</span>";
+        statusDiv.innerHTML = "<span class='text-emerald-400 font-bold'>Status: Acessos concedidos!</span>";
     } catch (e) {
-        statusDiv.innerHTML = "<span class='text-amber-400 font-bold'>Status: Sistema pronto para operar.</span>";
+        statusDiv.innerHTML = "<span class='text-amber-400 font-bold'>Status: Sistema pronto.</span>";
     }
 }
 
-// Geração de Documentos (PDF / Imagem) com local de salvamento do celular
+// Renderização do Documento (Com os dois espaços de assinatura: Técnico e Cliente)
 function criarElementoDocumentoParaRender() {
     const nomeCliente = document.getElementById('cli-nome').value || "Cliente";
     const tipoDoc = document.getElementById('doc-tipo').value;
@@ -284,7 +326,7 @@ function criarElementoDocumentoParaRender() {
     itensOrcamento.forEach(i => {
         let sub = i.qtd * i.valor;
         subtotal += sub;
-        htmlItens += `<tr><td style="padding: 6px; border-bottom: 1px solid #ddd;">${i.desc}</td><td style="padding: 6px; border-bottom: 1px solid #ddd; text-align:center;">${i.qtd}</td><td style="padding: 6px; border-bottom: 1px solid #ddd; text-align:right;">R$ ${i.valor.toFixed(2)}</td><td style="padding: 6px; border-bottom: 1px solid #ddd; text-align:right;">R$ ${sub.toFixed(2)}</td></tr>`;
+        htmlItens += `<tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">${i.desc}</td><td style="padding: 8px; border-bottom: 1px solid #ddd; text-align:center;">${i.qtd}</td><td style="padding: 8px; border-bottom: 1px solid #ddd; text-align:right;">R$ ${i.valor.toFixed(2)}</td><td style="padding: 8px; border-bottom: 1px solid #ddd; text-align:right;">R$ ${sub.toFixed(2)}</td></tr>`;
     });
 
     const descTipo = document.getElementById('desc-tipo').value;
@@ -293,22 +335,30 @@ function criarElementoDocumentoParaRender() {
     let totalFinal = subtotal - descCalc;
     if (totalFinal < 0) totalFinal = 0;
 
+    let assinaturaTecnicoImg = canvasAssinatura ? canvasAssinatura.toDataURL('image/png') : '';
+
     const containerDoc = document.createElement('div');
-    containerDoc.style.position = 'absolute';
-    containerDoc.style.left = '-9999px';
+    containerDoc.style.position = 'fixed';
+    containerDoc.style.top = '0';
+    containerDoc.style.left = '0';
     containerDoc.style.width = '600px';
-    containerDoc.className = 'bg-white text-slate-900 p-8 font-sans';
+    containerDoc.style.backgroundColor = '#ffffff';
+    containerDoc.style.color = '#111111';
+    containerDoc.style.padding = '24px';
+    containerDoc.style.zIndex = '99999';
+    containerDoc.style.boxShadow = '0 0 20px rgba(0,0,0,0.5)';
+    containerDoc.style.borderRadius = '8px';
 
     let logoHtml = logoBase64Empresa ? `<img src="${logoBase64Empresa}" style="max-height: 50px; max-width: 120px; float: right;">` : '';
     let qrHtml = linkQr ? `<div style="margin-top: 15px; text-align: center;"><p style="font-size: 10px; color: #555;">Acesse nosso site / WhatsApp:</p><img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(linkQr)}" style="width: 70px; height: 70px;"></div>` : '';
 
     containerDoc.innerHTML = `
-        <div style="font-family: Arial, sans-serif; color: #111;">
+        <div style="font-family: Arial, sans-serif;">
             ${logoHtml}
-            <h2 style="color: #d97706; margin: 0 0 5px 0;">${empNome}</h2>
+            <h2 style="color: #d97706; margin: 0 0 5px 0; font-size: 18px;">${empNome}</h2>
             <p style="font-size: 11px; color: #555; margin: 0;">CNPJ/CPF: ${empDoc} | Fone: ${empFone}</p>
             <hr style="border: 1px solid #d97706; margin: 10px 0;">
-            <div style="display: flex; justify-content: space-between; align-items: center; background: #f3f4f6; padding: 8px; border-radius: 6px;">
+            <div style="background: #f3f4f6; padding: 8px; border-radius: 6px; display: flex; justify-content: space-between;">
                 <h3 style="margin: 0; font-size: 14px; color: #1e293b;">${tipoDoc}</h3>
                 <span style="font-size: 11px;">Data: ${document.getElementById('cli-data').value}</span>
             </div>
@@ -330,55 +380,70 @@ function criarElementoDocumentoParaRender() {
             <div style="margin-top: 15px; text-align: right; font-size: 12px;">
                 <p style="margin: 2px 0;">Subtotal: R$ ${subtotal.toFixed(2)}</p>
                 <p style="margin: 2px 0; color: #dc2626;">Desconto: - R$ ${descCalc.toFixed(2)}</p>
-                <h3 style="margin: 5px 0; color: #1e293b;">TOTAL: R$ ${totalFinal.toFixed(2)}</h3>
+                <h3 style="margin: 5px 0; color: #1e293b; font-size: 14px;">TOTAL: R$ ${totalFinal.toFixed(2)}</h3>
                 <p style="margin: 5px 0; font-size: 11px; color: #333;">Forma de Pagamento: <strong>${formaPagto}</strong></p>
             </div>
 
             ${qrHtml}
 
-            <div style="margin-top: 40px; text-align: center;">
-                <div style="display: inline-block; border-top: 1px solid #333; width: 250px; padding-top: 5px;">
-                    <p style="font-size: 11px; margin: 0; color: #333;">Assinatura do Responsável / Cliente</p>
+            <!-- CAMPO COM AS DUAS ASSINATURAS NO RODAPÉ -->
+            <div style="margin-top: 40px; display: flex; justify-content: space-between;">
+                <div style="text-align: center; width: 45%;">
+                    <div style="height: 40px; margin-bottom: 2px;">
+                        <img src="${assinaturaTecnicoImg}" style="max-height: 40px; max-width: 150px;">
+                    </div>
+                    <div style="border-top: 1px solid #333; padding-top: 4px;">
+                        <p style="font-size: 10px; margin: 0; font-weight: bold;">Assinatura do Técnico</p>
+                    </div>
+                </div>
+                <div style="text-align: center; width: 45%;">
+                    <div style="height: 40px; margin-bottom: 2px;"></div>
+                    <div style="border-top: 1px solid #333; padding-top: 4px;">
+                        <p style="font-size: 10px; margin: 0; font-weight: bold;">Assinatura do Cliente</p>
+                    </div>
                 </div>
             </div>
         </div>
     `;
 
-    document.body.appendChild(containerDoc);
     return containerDoc;
 }
 
 function salvarDocumentoArquivo(tipo) {
     if (itensOrcamento.length === 0) {
-        alert("Adicione pelo menos um item.");
+        alert("Adicione pelo menos um item ao documento.");
         return;
     }
     const nome = document.getElementById('cli-nome').value || "Cliente";
     const container = criarElementoDocumentoParaRender();
+    document.body.appendChild(container);
 
-    html2canvas(container, { scale: 2 }).then(canvas => {
+    html2canvas(container, { scale: 2, useCORS: true }).then(canvas => {
         document.body.removeChild(container);
+        
         if (tipo === 'img') {
             const link = document.createElement('a');
             link.download = `Documento_${nome.replace(/\s+/g, '_')}.png`;
             link.href = canvas.toDataURL('image/png');
             link.click();
-            alert("Imagem salva com sucesso na pasta de downloads do celular!");
+            alert("Sucesso! Imagem salva no seu dispositivo.");
         } else {
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF('p', 'mm', 'a4');
             const imgData = canvas.toDataURL('image/png');
             pdf.addImage(imgData, 'PNG', 10, 10, 190, (canvas.height * 190) / canvas.width);
             pdf.save(`Documento_${nome.replace(/\s+/g, '_')}.pdf`);
-            alert("PDF salvo com sucesso na pasta de downloads do celular!");
+            alert("Sucesso! PDF salvo no seu dispositivo.");
         }
+    }).catch(err => {
+        document.body.removeChild(container);
+        alert("Erro ao gerar o arquivo.");
     });
 }
 
-// WhatsApp com opções
 function abrirModalCompartilharWhatsApp() {
     if (itensOrcamento.length === 0) {
-        alert("Adicione itens ao orçamento.");
+        alert("Adicione pelo menos um item ao documento.");
         return;
     }
     document.getElementById('modal-whatsapp').classList.remove('hidden');
@@ -407,14 +472,80 @@ function enviarWhatsAppTexto() {
     window.open(url, '_blank');
 }
 
-function enviarWhatsAppArquivo(formato) {
+async function enviarDiretoWhatsApp(tipo) {
     fecharModalWhatsApp();
-    salvarDocumentoArquivo(formato);
-    setTimeout(() => {
-        const fone = document.getElementById('cli-fone').value.replace(/\D/g, '');
-        const url = `https://api.whatsapp.com/send?phone=${fone}&text=${encodeURIComponent("Olá, segue o documento em anexo gerado pelo Gestor Serviços.")}`;
-        window.open(url, '_blank');
-    }, 1500);
+    if (itensOrcamento.length === 0) {
+        alert("Adicione pelo menos um item ao documento.");
+        return;
+    }
+
+    const nomeCliente = document.getElementById('cli-nome').value || "Cliente";
+    const container = criarElementoDocumentoParaRender();
+    document.body.appendChild(container);
+
+    html2canvas(container, { scale: 2, useCORS: true }).then(async canvas => {
+        document.body.removeChild(container);
+
+        try {
+            if (tipo === 'img') {
+                const base64Data = canvas.toDataURL('image/png');
+                const fileName = `Documento_${nomeCliente.replace(/\s+/g, '_')}.png`;
+
+                if (window.Capacitor && window.Capacitor.Plugins.Share) {
+                    const savedFile = await window.Capacitor.Plugins.Filesystem.writeFile({
+                        path: fileName,
+                        data: base64Data,
+                        directory: 'CACHE'
+                    });
+
+                    await window.Capacitor.Plugins.Share.share({
+                        title: 'Enviar Imagem',
+                        text: `Olá ${nomeCliente}, segue o documento em imagem.`,
+                        url: savedFile.uri,
+                        dialogTitle: 'Enviar para o WhatsApp'
+                    });
+                } else {
+                    const link = document.createElement('a');
+                    link.download = fileName;
+                    link.href = base64Data;
+                    link.click();
+                    alert("Imagem baixada para envio.");
+                }
+            } else {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgData = canvas.toDataURL('image/png');
+                pdf.addImage(imgData, 'PNG', 10, 10, 190, (canvas.height * 190) / canvas.width);
+                
+                const pdfOutput = pdf.output('datauristring');
+                const fileName = `Documento_${nomeCliente.replace(/\s+/g, '_')}.pdf`;
+
+                if (window.Capacitor && window.Capacitor.Plugins.Share) {
+                    const savedFile = await window.Capacitor.Plugins.Filesystem.writeFile({
+                        path: fileName,
+                        data: pdfOutput,
+                        directory: 'CACHE'
+                    });
+
+                    await window.Capacitor.Plugins.Share.share({
+                        title: 'Enviar PDF',
+                        text: `Olá ${nomeCliente}, segue o documento em PDF.`,
+                        url: savedFile.uri,
+                        dialogTitle: 'Enviar para o WhatsApp'
+                    });
+                } else {
+                    pdf.save(fileName);
+                    alert("PDF gerado com sucesso!");
+                }
+            }
+        } catch (error) {
+            console.error("Erro no compartilhamento:", error);
+            alert("Não foi possível disparar o compartilhamento automático. Use a opção de salvar PDF.");
+        }
+    }).catch(err => {
+        document.body.removeChild(container);
+        alert("Erro ao processar a prévia do documento.");
+    });
 }
 
 function compartilharEmail() {
@@ -425,7 +556,6 @@ function compartilharEmail() {
     window.location.href = `mailto:?subject=${assunto}&body=${corpo}`;
 }
 
-// Configurações e IA
 function salvarApiKey() {
     const key = document.getElementById('input-api-key').value.trim();
     if (!key) return alert("Insira uma chave válida.");
@@ -441,7 +571,7 @@ function carregarApiKeySalva() {
 function limparChat() {
     document.getElementById('chat-mensagens').innerHTML = `
         <div class="bg-slate-800 p-3 rounded-xl max-w-[85%] border border-slate-700">
-            <p class="text-xs text-slate-300">Histórico limpo. Como posso ajudar com materiais ou serviços?</p>
+            <p class="text-xs text-slate-300">Histórico limpo. Como posso ajudar?</p>
         </div>
     `;
 }
@@ -453,7 +583,7 @@ async function enviarMensagemIA() {
 
     if (!msg) return;
     if (!apiKey) {
-        alert("Configure sua chave de API na aba de Empresa/Ajustes.");
+        alert("Configure sua chave de API na aba Empresa.");
         mudarAba('config');
         return;
     }
@@ -472,7 +602,7 @@ async function enviarMensagemIA() {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                contents: [{ parts: [{ text: "Você é um assistente técnico especialista em elétrica (NBR 5410), custos de materiais e precificação de mão de obra. Responda direto: " + msg }] }]
+                contents: [{ parts: [{ text: "Você é um assistente técnico especialista em elétrica (NBR 5410) e precificação. Responda direto: " + msg }] }]
             })
         });
 
