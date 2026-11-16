@@ -127,6 +127,19 @@
                 </select>
             </div>
 
+            <!-- BLOCO DE ASSINATURA DIGITAL DO TÉCNICO -->
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-2">
+                <div class="flex justify-between items-center">
+                    <label class="text-xs text-amber-400 font-semibold uppercase flex items-center">
+                        <i class="fa-solid fa-signature mr-1"></i> Assinatura do Técnico (Toque para assinar)
+                    </label>
+                    <button onclick="limparAssinaturaTecnico()" class="text-xs text-red-400 hover:text-red-300">Limpar</button>
+                </div>
+                <div class="bg-white rounded-lg overflow-hidden border border-slate-700 touch-none">
+                    <canvas id="canvas-assinatura" height="100" class="w-full cursor-crosshair"></canvas>
+                </div>
+            </div>
+
             <!-- BOTÕES DE AÇÃO -->
             <div class="grid grid-cols-2 gap-3 pt-2">
                 <button onclick="salvarDocumentoArquivo('pdf')" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-4 rounded-xl text-sm flex items-center justify-center space-x-2 shadow-lg transition">
@@ -163,7 +176,7 @@
                 </div>
 
                 <div class="flex space-x-1 bg-slate-900 p-1 rounded-lg text-xs font-semibold">
-                    <button onclick="mudarFiltroAgenda('agenda')" id="filtro-btn-agenda" class="flex-1 py-2 rounded-md bg-amber-500 text-slate-900 transition">Agenda</button>
+                    <button onclick="mudarFiltroAgenda('agenda')" id="filtro-btn-agenda" class="flex-1 py-2 rounded-md bg-amber-500 text-slate-900 transition font-bold">Agenda</button>
                     <button onclick="mudarFiltroAgenda('espera')" id="filtro-btn-espera" class="flex-1 py-2 rounded-md text-slate-400 transition">Em Espera</button>
                     <button onclick="mudarFiltroAgenda('executados')" id="filtro-btn-executados" class="flex-1 py-2 rounded-md text-slate-400 transition">Executados</button>
                 </div>
