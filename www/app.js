@@ -5,7 +5,23 @@ let logoBase64Empresa = localStorage.getItem('gestor_logo_b64') || '';
 
 let canvasAssinatura, ctxAssinatura, desenhando = false;
 
-let catalogoEletrica = [
+// Catálogo separado de Materiais Elétricos
+let catalogoMateriais = [
+    { desc: "Cabo Flexível 2,5mm² (rolo 100m)", valor: 145.00 },
+    { desc: "Cabo Flexível 4,0mm² (rolo 100m)", valor: 225.00 },
+    { desc: "Cabo Flexível 6,0mm² (rolo 100m)", valor: 340.00 },
+    { desc: "Disjuntor Monofásico 10A a 32A", valor: 22.00 },
+    { desc: "Disjuntor Bipolar 40A a 63A", valor: 65.00 },
+    { desc: "Disjuntor DR 40A / 63A (30mA)", valor: 110.00 },
+    { desc: "Dispositivo DPS 20kA / 40kA", valor: 55.00 },
+    { desc: "Tomada 2P+T 10A / 20A Completa", valor: 18.00 },
+    { desc: "Interruptor Simples + Tomada", valor: 25.00 },
+    { desc: "Quadro de Distribuição (QGBT) 12/16 Pinos", valor: 95.00 },
+    { desc: "Fita Isolante Profissional 20m", valor: 12.00 }
+];
+
+// Catálogo separado de Mão de Obra
+let catalogoMaoObra = [
     { desc: "Instalação de Disjuntor / DR / DPS", valor: 120.00 },
     { desc: "Montagem e Cabeamento de Quadro Elétrico (QGBT)", valor: 450.00 },
     { desc: "Passagem de Fiação por Eletroduto (metro)", valor: 15.00 },
@@ -13,13 +29,15 @@ let catalogoEletrica = [
     { desc: "Instalação de Chuveiro Elétrico", valor: 90.00 },
     { desc: "Instalação de Luminária / Plafon / Spot", valor: 50.00 },
     { desc: "Laudo de Inspeção e Termografia", valor: 350.00 },
-    { desc: "Visita Técnica e Diagnóstico de Falha", valor: 150.00 }
+    { desc: "Visita Técnica e Diagnóstico de Falha", valor: 150.00 },
+    { desc: "Ponto Adicional de Tomada / Luz (Infraestrutura)", valor: 80.00 }
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('cli-data').valueAsDate = new Date();
     document.getElementById('srv-data').valueAsDate = new Date();
-    carregarCatalogo();
+    carregarCatalogosNaTela();
+    carregarSelectsModal();
     carregarApiKeySalva();
     carregarDadosEmpresaNaTela();
     renderizarCompromissos();
@@ -78,7 +96,7 @@ function mudarAba(abaId) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
     document.getElementById(`aba-${abaId}`).classList.remove('hidden');
 
-    ['orcamento', 'agenda', 'catalogo', 'ia', 'config'].forEach(id => {
+    ['orcamento', 'agenda', 'materiais', 'mao-obra', 'ia', 'config'].forEach(id => {
         const btn = document.getElementById(`nav-btn-${id}`);
         if(btn) {
             btn.classList.remove('text-amber-400');
@@ -95,7 +113,8 @@ function mudarAba(abaId) {
     const titles = {
         orcamento: "Painel de Documentos",
         agenda: "Agenda & Serviços",
-        catalogo: "Tabela Padrão Elétrica",
+        materiais: "Catálogo de Materiais",
+        'mao-obra': "Catálogo de Mão de Obra",
         ia: "Assistente IA (Gemini)",
         config: "Empresa & Ajustes"
     };
@@ -131,13 +150,29 @@ function carregarDadosEmpresaNaTela() {
     if(localStorage.getItem('emp_link_qr')) document.getElementById('emp-link-qr').value = localStorage.getItem('emp_link_qr');
 }
 
-// Catálogo de Elétrica
-function carregarCatalogo() {
-    const container = document.getElementById('catalogo-padrao');
-    container.innerHTML = '';
-    catalogoEletrica.forEach((item, index) => {
-        container.innerHTML += `
-            <div onclick="adicionarDoCatalogo(${index})" class="bg-slate-900 border border-slate-700/60 p-3 rounded-xl flex justify-between items-center active:border-amber-500 transition cursor-pointer">
+// Renderização dos Catálogos Separados
+function carregarCatalogosNaTela() {
+    // Materiais
+    const containerMat = document.getElementById('catalogo-materiais');
+    containerMat.innerHTML = '';
+    catalogoMateriais.forEach((item, index) => {
+        containerMat.innerHTML += `
+            <div onclick="adicionarDoCatalogoMateriais(${index})" class="bg-slate-900 border border-slate-700/60 p-3 rounded-xl flex justify-between items-center active:border-amber-500 transition cursor-pointer">
+                <div>
+                    <p class="text-sm font-medium text-slate-200">${item.desc}</p>
+                    <p class="text-xs text-amber-400 font-bold">R$ ${item.valor.toFixed(2).replace('.', ',')}</p>
+                </div>
+                <button class="bg-slate-800 text-amber-400 p-2 rounded-lg text-xs"><i class="fa-solid fa-plus"></i></button>
+            </div>
+        `;
+    });
+
+    // Mão de Obra
+    const containerMao = document.getElementById('catalogo-mao-obra');
+    containerMao.innerHTML = '';
+    catalogoMaoObra.forEach((item, index) => {
+        containerMao.innerHTML += `
+            <div onclick="adicionarDoCatalogoMaoObra(${index})" class="bg-slate-900 border border-slate-700/60 p-3 rounded-xl flex justify-between items-center active:border-amber-500 transition cursor-pointer">
                 <div>
                     <p class="text-sm font-medium text-slate-200">${item.desc}</p>
                     <p class="text-xs text-amber-400 font-bold">R$ ${item.valor.toFixed(2).replace('.', ',')}</p>
@@ -148,8 +183,53 @@ function carregarCatalogo() {
     });
 }
 
-function adicionarDoCatalogo(index) {
-    const item = catalogoEletrica[index];
+function carregarSelectsModal() {
+    const selectMat = document.getElementById('modal-select-materiais');
+    const selectMao = document.getElementById('modal-select-mao-obra');
+    if (!selectMat || !selectMao) return;
+
+    selectMat.innerHTML = '<option value="">-- Escolher material --</option>';
+    catalogoMateriais.forEach((item, index) => {
+        selectMat.innerHTML += `<option value="${index}">${item.desc} - R$ ${item.valor.toFixed(2)}</option>`;
+    });
+
+    selectMao.innerHTML = '<option value="">-- Escolher serviço --</option>';
+    catalogoMaoObra.forEach((item, index) => {
+        selectMao.innerHTML += `<option value="${index}">${item.desc} - R$ ${item.valor.toFixed(2)}</option>`;
+    });
+}
+
+function selecionarMaterialModal() {
+    const select = document.getElementById('modal-select-materiais');
+    const index = select.value;
+    if (index === "") return;
+    document.getElementById('modal-select-mao-obra').value = ""; // limpa o outro select
+    const item = catalogoMateriais[index];
+    document.getElementById('modal-desc').value = item.desc;
+    document.getElementById('modal-valor').value = item.valor;
+    document.getElementById('modal-qtd').value = 1;
+}
+
+function selecionarMaoObraModal() {
+    const select = document.getElementById('modal-select-mao-obra');
+    const index = select.value;
+    if (index === "") return;
+    document.getElementById('modal-select-materiais').value = ""; // limpa o outro select
+    const item = catalogoMaoObra[index];
+    document.getElementById('modal-desc').value = item.desc;
+    document.getElementById('modal-valor').value = item.valor;
+    document.getElementById('modal-qtd').value = 1;
+}
+
+function adicionarDoCatalogoMateriais(index) {
+    const item = catalogoMateriais[index];
+    itensOrcamento.push({ desc: item.desc, qtd: 1, valor: item.valor });
+    atualizarTabelaOrcamento();
+    mudarAba('orcamento');
+}
+
+function adicionarDoCatalogoMaoObra(index) {
+    const item = catalogoMaoObra[index];
     itensOrcamento.push({ desc: item.desc, qtd: 1, valor: item.valor });
     atualizarTabelaOrcamento();
     mudarAba('orcamento');
@@ -157,6 +237,8 @@ function adicionarDoCatalogo(index) {
 
 // Modal de Itens
 function abrirModalItem() {
+    document.getElementById('modal-select-materiais').value = "";
+    document.getElementById('modal-select-mao-obra').value = "";
     document.getElementById('modal-desc').value = '';
     document.getElementById('modal-qtd').value = '1';
     document.getElementById('modal-valor').value = '';
@@ -540,7 +622,7 @@ async function enviarDiretoWhatsApp(tipo) {
             }
         } catch (error) {
             console.error("Erro no compartilhamento:", error);
-            alert("Não foi possível disparar o compartilhamento automático. Use a opção de salvar PDF.");
+            alert("Não foi possível disparar o compartilhamento automático.");
         }
     }).catch(err => {
         document.body.removeChild(container);
@@ -548,12 +630,64 @@ async function enviarDiretoWhatsApp(tipo) {
     });
 }
 
-function compartilharEmail() {
-    const nome = document.getElementById('cli-nome').value || "Cliente";
-    let total = itensOrcamento.reduce((acc, i) => acc + (i.qtd * i.valor), 0);
-    let assunto = encodeURIComponent(`Documento de Serviços - ${nome}`);
-    let corpo = encodeURIComponent(`Olá ${nome},\n\nSegue o valor total do documento: R$ ${total.toFixed(2)}.\n\nAtenciosamente,\nGestor Serviços.`);
-    window.location.href = `mailto:?subject=${assunto}&body=${corpo}`;
+// Envio Direto por E-mail com PDF Anexado Nativamente
+async function compartilharEmail() {
+    if (itensOrcamento.length === 0) {
+        alert("Adicione pelo menos um item ao documento.");
+        return;
+    }
+
+    const nomeCliente = document.getElementById('cli-nome').value || "Cliente";
+    const tipoDoc = document.getElementById('doc-tipo').value;
+    let subtotal = 0;
+    itensOrcamento.forEach(i => subtotal += (i.qtd * i.valor));
+    
+    const descTipo = document.getElementById('desc-tipo').value;
+    const descValInput = parseFloat(document.getElementById('desc-valor').value) || 0;
+    let descCalc = descTipo === 'rs' ? descValInput : (subtotal * descValInput) / 100;
+    let totalFinal = subtotal - descCalc;
+    if (totalFinal < 0) totalFinal = 0;
+
+    const container = criarElementoDocumentoParaRender();
+    document.body.appendChild(container);
+
+    html2canvas(container, { scale: 2, useCORS: true }).then(async canvas => {
+        document.body.removeChild(container);
+
+        try {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF('p', 'mm', 'a4');
+            const imgData = canvas.toDataURL('image/png');
+            pdf.addImage(imgData, 'PNG', 10, 10, 190, (canvas.height * 190) / canvas.width);
+            
+            const pdfOutput = pdf.output('datauristring');
+            const fileName = `Documento_${nomeCliente.replace(/\s+/g, '_')}.pdf`;
+
+            if (window.Capacitor && window.Capacitor.Plugins.Share) {
+                const savedFile = await window.Capacitor.Plugins.Filesystem.writeFile({
+                    path: fileName,
+                    data: pdfOutput,
+                    directory: 'CACHE'
+                });
+
+                await window.Capacitor.Plugins.Share.share({
+                    title: `${tipoDoc} - ${nomeCliente}`,
+                    text: `Olá ${nomeCliente},\n\nSegue em anexo o ${tipoDoc.toLowerCase()} no valor de R$ ${totalFinal.toFixed(2)}.\n\nAtenciosamente,\nGestor Serviços.`,
+                    url: savedFile.uri,
+                    dialogTitle: 'Enviar por E-mail'
+                });
+            } else {
+                pdf.save(fileName);
+                alert("PDF gerado com sucesso!");
+            }
+        } catch (error) {
+            console.error("Erro no envio por e-mail:", error);
+            alert("Não foi possível anexar o arquivo automaticamente.");
+        }
+    }).catch(err => {
+        document.body.removeChild(container);
+        alert("Erro ao processar o documento para e-mail.");
+    });
 }
 
 function salvarApiKey() {
@@ -565,7 +699,7 @@ function salvarApiKey() {
 
 function carregarApiKeySalva() {
     const key = localStorage.getItem('gemini_api_key');
-    if (key) document.getElementById('input-api-key').value = key;
+    if (key) document.getElementById('input-api-key-key').value = key;
 }
 
 function limparChat() {
@@ -607,12 +741,14 @@ async function enviarMensagemIA() {
         });
 
         const data = await response.json();
-        document.getElementById(loadingId).remove();
-        const respostaTexto = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sem resposta.";
+        const loadingElem = document.getElementById(loadingId);
+        if (loadingElem) loadingElem.remove();
         
+        const respostaTexto = data.candidates?.[0]?.content?.parts?.[0]?.text || "Sem resposta.";
         chatDiv.innerHTML += `<div class="flex justify-start"><div class="bg-slate-800 text-slate-200 p-3 rounded-xl max-w-[85%] text-xs border border-slate-700 leading-relaxed">${respostaTexto.replace(/\n/g, '<br>')}</div></div>`;
     } catch (error) {
-        document.getElementById(loadingId).remove();
+        const loadingElem = document.getElementById(loadingId);
+        if (loadingElem) loadingElem.remove();
         chatDiv.innerHTML += `<div class="flex justify-start"><div class="bg-red-900/50 text-red-200 p-3 rounded-xl max-w-[85%] text-xs border border-red-700">Erro ao conectar com a IA.</div></div>`;
     }
     chatDiv.scrollTop = chatDiv.scrollHeight;
