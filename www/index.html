@@ -93,9 +93,6 @@
                         <button onclick="abrirModalSelecionarClienteSalvo()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-bold px-2.5 py-1 rounded-lg transition flex items-center">
                             <i class="fa-solid fa-users mr-1"></i> Salvos
                         </button>
-                        <button onclick="importarContatoAgenda()" class="bg-slate-700 hover:bg-slate-600 text-amber-400 text-xs font-semibold px-2 py-1 rounded-lg transition flex items-center">
-                            <i class="fa-solid fa-address-book mr-1"></i> Contatos
-                        </button>
                     </div>
                 </div>
                 <div>
@@ -156,24 +153,6 @@
                 </div>
             </div>
 
-            <!-- FOTOS DO SERVIÇO -->
-            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
-                <div class="flex justify-between items-center">
-                    <label class="text-xs text-amber-400 font-semibold uppercase flex items-center">
-                        <i class="fa-solid fa-camera mr-1.5"></i> Fotos do Serviço (Máx. 4)
-                    </label>
-                    <span id="contador-fotos" class="text-xs text-slate-400">0/4 fotos</span>
-                </div>
-                <div class="grid grid-cols-4 gap-2" id="container-fotos-preview"></div>
-                <div>
-                    <input type="file" id="input-fotos-servico" accept="image/*" multiple onchange="adicionarFotosServico(event)" class="hidden">
-                    <button onclick="document.getElementById('input-fotos-servico').click()" class="w-full bg-slate-700 hover:bg-slate-600 text-amber-400 font-semibold py-2.5 rounded-xl text-xs transition flex items-center justify-center space-x-2 border border-slate-600">
-                        <i class="fa-solid fa-plus-circle text-sm"></i>
-                        <span>Adicionar Fotos (Câmera ou Galeria)</span>
-                    </button>
-                </div>
-            </div>
-
             <!-- FORMA DE PAGAMENTO -->
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-2">
                 <label class="text-xs text-slate-400 block font-semibold uppercase">Forma de Pagamento</label>
@@ -190,7 +169,7 @@
             <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-2">
                 <div class="flex justify-between items-center">
                     <label class="text-xs text-amber-400 font-semibold uppercase flex items-center">
-                        <i class="fa-solid fa-signature mr-1"></i> Assinatura do Técnico (Toque para assinar)
+                        <i class="fa-solid fa-signature mr-1"></i> Assinatura do Técnico
                     </label>
                     <button onclick="limparAssinaturaTecnico()" class="text-xs text-red-400 hover:text-red-300">Limpar</button>
                 </div>
@@ -217,4 +196,170 @@
         </div>
 
         <!-- ABA CLIENTES -->
-        <div id="aba-clientes" class="space-y-
+        <div id="aba-clientes" class="space-y-4 tab-content hidden">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-users mr-2"></i> Cadastro de Clientes
+                    </h2>
+                    <button onclick="abrirModalNovoCliente()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-bold px-3 py-1.5 rounded-lg transition">
+                        <i class="fa-solid fa-plus mr-1"></i> Novo Cliente
+                    </button>
+                </div>
+                <div id="lista-clientes-cadastrados" class="space-y-2 pt-2"></div>
+            </div>
+        </div>
+
+        <!-- ABA AGENDA -->
+        <div id="aba-agenda" class="space-y-4 tab-content hidden">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center">
+                        <i class="fa-solid fa-calendar-days mr-2"></i> Agenda & Serviços
+                    </h2>
+                    <button onclick="abrirModalServicoStatus()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 text-xs font-bold px-3 py-1.5 rounded-lg transition">
+                        <i class="fa-solid fa-plus"></i> Novo
+                    </button>
+                </div>
+                <div id="lista-compromissos" class="space-y-2 pt-2"></div>
+            </div>
+        </div>
+
+        <!-- ABA MATERIAIS -->
+        <div id="aba-materiais" class="space-y-4 tab-content hidden">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm">
+                <h2 class="text-sm font-semibold text-amber-400 mb-3 uppercase tracking-wider flex items-center">
+                    <i class="fa-solid fa-box-open mr-2"></i> Catálogo de Materiais
+                </h2>
+                <div class="space-y-2" id="catalogo-materiais"></div>
+            </div>
+        </div>
+
+        <!-- ABA MÃO DE OBRA -->
+        <div id="aba-mao-obra" class="space-y-4 tab-content hidden">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm">
+                <h2 class="text-sm font-semibold text-amber-400 mb-3 uppercase tracking-wider flex items-center">
+                    <i class="fa-solid fa-user-gear mr-2"></i> Catálogo de Mão de Obra
+                </h2>
+                <div class="space-y-2" id="catalogo-mao-obra"></div>
+            </div>
+        </div>
+
+        <!-- ABA RELATÓRIO -->
+        <div id="aba-relatorio" class="space-y-4 tab-content hidden">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
+                <h2 class="text-sm font-semibold text-emerald-400 uppercase tracking-wider flex items-center">
+                    <i class="fa-solid fa-chart-line mr-2"></i> Serviços Executados
+                </h2>
+                <div class="bg-slate-900 border border-emerald-500/40 p-3 rounded-xl flex justify-between items-center">
+                    <div>
+                        <p class="text-xs text-slate-400">Total Faturado</p>
+                        <p class="text-lg font-bold text-emerald-400" id="faturamento-total-geral">R$ 0,00</p>
+                    </div>
+                </div>
+                <div id="lista-relatorio-servicos" class="space-y-2 pt-2"></div>
+            </div>
+        </div>
+
+        <!-- ABA CONFIG -->
+        <div id="aba-config" class="space-y-4 tab-content hidden">
+            <div class="bg-slate-800 border border-slate-700 rounded-xl p-4 shadow-sm space-y-3">
+                <h2 class="text-sm font-semibold text-amber-400 uppercase tracking-wider flex items-center">
+                    <i class="fa-solid fa-building mr-2"></i> Dados da Empresa
+                </h2>
+                <div><label class="text-xs text-slate-400 block mb-1">Nome da Empresa</label><input type="text" id="emp-nome" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"></div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div><label class="text-xs text-slate-400 block mb-1">CNPJ / CPF</label><input type="text" id="emp-doc" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"></div>
+                    <div><label class="text-xs text-slate-400 block mb-1">Telefone</label><input type="text" id="emp-fone" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"></div>
+                </div>
+                <button onclick="salvarDadosEmpresa()" class="w-full bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold py-2.5 rounded-xl text-sm transition">Salvar Dados</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- MODAL CLIENTE -->
+    <div id="modal-cliente" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50 overflow-y-auto">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-3 shadow-2xl my-auto">
+            <h3 class="font-bold text-base text-amber-400">Salvar Novo Cliente</h3>
+            <div class="space-y-2.5">
+                <div><label class="text-xs text-slate-400 block mb-1">Nome</label><input type="text" id="cad-cli-nome" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"></div>
+                <div><label class="text-xs text-slate-400 block mb-1">Telefone</label><input type="text" id="cad-cli-fone" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"></div>
+                <div><label class="text-xs text-slate-400 block mb-1">Endereço</label><input type="text" id="cad-cli-endereco" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"></div>
+            </div>
+            <div class="flex space-x-2 pt-2">
+                <button onclick="fecharModalNovoCliente()" class="flex-1 bg-slate-700 py-2.5 rounded-xl text-sm font-semibold">Cancelar</button>
+                <button onclick="salvarClienteCadastrado()" class="flex-1 bg-amber-500 text-slate-900 py-2.5 rounded-xl text-sm font-bold">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SELECIONAR CLIENTE -->
+    <div id="modal-selecionar-cliente" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50 overflow-y-auto">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-3 shadow-2xl my-auto">
+            <h3 class="font-bold text-base text-amber-400">Selecionar Cliente Salvo</h3>
+            <div id="lista-modal-clientes-salvos" class="space-y-2 max-h-60 overflow-y-auto"></div>
+            <button onclick="fecharModalSelecionarClienteSalvo()" class="w-full bg-slate-700 py-2.5 rounded-xl text-sm font-semibold mt-2">Fechar</button>
+        </div>
+    </div>
+
+    <!-- MODAL PRÉ-VISUALIZAÇÃO -->
+    <div id="modal-preview" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden flex-col z-50 overflow-y-auto p-4">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg mx-auto my-auto p-4 space-y-4 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h3 class="font-bold text-base text-amber-400"><i class="fa-solid fa-eye mr-2"></i> Pré-visualização</h3>
+                <button onclick="fecharPreVisualizacao()" class="text-slate-400 hover:text-white p-2"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="preview-container-content" class="bg-white text-slate-900 p-4 rounded-xl overflow-x-auto max-h-[60vh]"></div>
+            <div class="flex space-x-2 pt-2">
+                <button onclick="fecharPreVisualizacao()" class="flex-1 bg-slate-700 py-3 rounded-xl text-sm font-semibold text-white">Voltar</button>
+                <button onclick="fecharPreVisualizacao(); salvarDocumentoArquivo('pdf')" class="flex-1 bg-red-600 py-3 rounded-xl text-sm font-bold text-white">Salvar PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ADICIONAR ITEM -->
+    <div id="modal-item" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl">
+            <h3 class="font-bold text-base text-amber-400">Adicionar Item</h3>
+            <div class="space-y-3">
+                <div><label class="text-xs text-slate-400 block mb-1">Catálogo Materiais</label><select id="modal-select-materiais" onchange="selecionarMaterialModal()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-amber-400"><option value="">-- Escolher --</option></select></div>
+                <div><label class="text-xs text-slate-400 block mb-1">Catálogo Mão de Obra</label><select id="modal-select-mao-obra" onchange="selecionarMaoObraModal()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-amber-400"><option value="">-- Escolher --</option></select></div>
+                <div><label class="text-xs text-slate-400 block mb-1">Descrição</label><input type="text" id="modal-desc" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"></div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div><label class="text-xs text-slate-400 block mb-1">Qtd</label><input type="number" id="modal-qtd" value="1" min="1" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"></div>
+                    <div><label class="text-xs text-slate-400 block mb-1">Valor Unit. (R$)</label><input type="number" step="0.01" id="modal-valor" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm"></div>
+                </div>
+            </div>
+            <div class="flex space-x-2 pt-2">
+                <button onclick="fecharModalItem()" class="flex-1 bg-slate-700 py-2.5 rounded-xl text-sm">Cancelar</button>
+                <button onclick="adicionarItemOrcamento()" class="flex-1 bg-amber-500 text-slate-900 py-2.5 rounded-xl text-sm font-bold">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL WHATSAPP -->
+    <div id="modal-whatsapp" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm p-5 space-y-4 shadow-2xl text-center">
+            <h3 class="font-bold text-base text-amber-400"><i class="fa-brands fa-whatsapp text-emerald-400"></i> Enviar pelo WhatsApp</h3>
+            <div class="space-y-2 pt-2">
+                <button onclick="enviarWhatsAppTexto()" class="w-full bg-slate-900 border border-slate-700 py-3 rounded-xl text-xs font-semibold text-slate-200">Resumo em Texto</button>
+                <button onclick="enviarDiretoWhatsApp('pdf')" class="w-full bg-emerald-600 py-3 rounded-xl text-xs font-bold text-white"><i class="fa-solid fa-file-pdf"></i> Salvar PDF e Abrir WhatsApp</button>
+                <button onclick="enviarDiretoWhatsApp('img')" class="w-full bg-blue-600 py-3 rounded-xl text-xs font-bold text-white"><i class="fa-solid fa-image"></i> Salvar Imagem e Abrir WhatsApp</button>
+            </div>
+            <button onclick="fecharModalWhatsApp()" class="w-full bg-slate-700 py-2 rounded-xl text-xs text-slate-300 mt-2">Cancelar</button>
+        </div>
+    </div>
+
+    <!-- MENU INFERIOR FIXO -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-slate-800 border-t border-slate-700 flex justify-around py-3 z-50 shadow-2xl">
+        <button onclick="mudarAba('menu')" id="nav-btn-menu" class="flex flex-col items-center text-amber-400 transition"><i class="fa-solid fa-house text-lg"></i><span class="text-[10px] mt-1">Início</span></button>
+        <button onclick="mudarAba('orcamento')" id="nav-btn-orcamento" class="flex flex-col items-center text-slate-400 transition"><i class="fa-solid fa-file-invoice-dollar text-lg"></i><span class="text-[10px] mt-1">Documento</span></button>
+        <button onclick="mudarAba('clientes')" id="nav-btn-clientes" class="flex flex-col items-center text-slate-400 transition"><i class="fa-solid fa-users text-lg"></i><span class="text-[10px] mt-1">Clientes</span></button>
+        <button onclick="mudarAba('agenda')" id="nav-btn-agenda" class="flex flex-col items-center text-slate-400 transition"><i class="fa-solid fa-calendar-days text-lg"></i><span class="text-[10px] mt-1">Agenda</span></button>
+        <button onclick="mudarAba('relatorio')" id="nav-btn-relatorio" class="flex flex-col items-center text-slate-400 transition"><i class="fa-solid fa-chart-line text-lg"></i><span class="text-[10px] mt-1">Feitos</span></button>
+        <button onclick="mudarAba('config')" id="nav-btn-config" class="flex flex-col items-center text-slate-400 transition"><i class="fa-solid fa-gear text-lg"></i><span class="text-[10px] mt-1">Empresa</span></button>
+    </nav>
+
+    <script src="app.js"></script>
+</body>
+</html>
