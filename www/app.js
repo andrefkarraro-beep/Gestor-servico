@@ -117,7 +117,7 @@ function limparAssinaturaTecnico() {
     }
 }
 
-// Navegação entre Abas
+// Navegação entre Abas corrigida
 function mudarAba(abaId) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
     const abaAlvo = document.getElementById(`aba-${abaId}`);
