@@ -1,27 +1,13 @@
 let itensOrcamento = [];
 let fotosServico = [];
-
-// Blindagem contra dados corrompidos no localStorage
 let compromissos = [];
-try {
-    compromissos = JSON.parse(localStorage.getItem('gestor_compromissos') || '[]');
-} catch(e) { compromissos = []; }
-
 let clientesSalvos = [];
-try {
-    clientesSalvos = JSON.parse(localStorage.getItem('gestor_clientes_salvos') || '[]');
-} catch(e) { clientesSalvos = []; }
-
 let historicoServicosFeitos = [];
-try {
-    historicoServicosFeitos = JSON.parse(localStorage.getItem('gestor_historico_feitos') || '[]');
-} catch(e) { historicoServicosFeitos = []; }
-
 let filtroAtualAgenda = 'agenda';
-let logoBase64Empresa = localStorage.getItem('gestor_logo_b64') || '';
-
+let logoBase64Empresa = '';
 let canvasAssinatura, ctxAssinatura, desenhando = false;
 
+// Catálogos Padrão
 let catalogoMateriais = [
     { desc: "Cabo Flexível 2,5mm² (rolo 100m)", valor: 145.00 },
     { desc: "Cabo Flexível 4,0mm² (rolo 100m)", valor: 225.00 },
@@ -48,24 +34,37 @@ let catalogoMaoObra = [
     { desc: "Ponto Adicional de Tomada / Luz (Infraestrutura)", valor: 80.00 }
 ];
 
+// Inicialização Segura
 document.addEventListener('DOMContentLoaded', () => {
+    try {
+        compromissos = JSON.parse(localStorage.getItem('gestor_compromissos') || '[]');
+    } catch(e) { compromissos = []; }
+
+    try {
+        clientesSalvos = JSON.parse(localStorage.getItem('gestor_clientes_salvos') || '[]');
+    } catch(e) { clientesSalvos = []; }
+
+    try {
+        historicoServicosFeitos = JSON.parse(localStorage.getItem('gestor_historico_feitos') || '[]');
+    } catch(e) { historicoServicosFeitos = []; }
+
+    logoBase64Empresa = localStorage.getItem('gestor_logo_b64') || '';
+
     try {
         const cliData = document.getElementById('cli-data');
         const srvData = document.getElementById('srv-data');
         if(cliData) cliData.valueAsDate = new Date();
         if(srvData) srvData.valueAsDate = new Date();
+    } catch(e) {}
 
-        carregarCatalogosNaTela();
-        carregarSelectsModal();
-        carregarApiKeySalva();
-        carregarDadosEmpresaNaTela();
-        renderizarCompromissos();
-        renderizarClientesCadastrados();
-        carregarRelatorioServicos();
-        inicializarCanvasAssinatura();
-    } catch(err) {
-        console.error("Erro na inicialização:", err);
-    }
+    try { carregarCatalogosNaTela(); } catch(e) {}
+    try { carregarSelectsModal(); } catch(e) {}
+    try { carregarApiKeySalva(); } catch(e) {}
+    try { carregarDadosEmpresaNaTela(); } catch(e) {}
+    try { renderizarCompromissos(); } catch(e) {}
+    try { renderizarClientesCadastrados(); } catch(e) {}
+    try { carregarRelatorioServicos(); } catch(e) {}
+    try { inicializarCanvasAssinatura(); } catch(e) {}
 });
 
 function carregarApiKeySalva() {
@@ -119,42 +118,39 @@ function limparAssinaturaTecnico() {
 
 // Navegação entre Abas
 function mudarAba(abaId) {
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-    const abaAlvo = document.getElementById(`aba-${abaId}`);
-    if (abaAlvo) abaAlvo.classList.remove('hidden');
+    try {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        const abaAlvo = document.getElementById(`aba-${abaId}`);
+        if (abaAlvo) abaAlvo.classList.remove('hidden');
 
-    ['menu', 'orcamento', 'clientes', 'agenda', 'materiais', 'mao-obra', 'relatorio', 'config'].forEach(id => {
-        const btn = document.getElementById(`nav-btn-${id}`);
-        if(btn) {
-            btn.classList.remove('text-amber-400');
-            btn.classList.add('text-slate-400');
+        ['menu', 'orcamento', 'clientes', 'agenda', 'materiais', 'mao-obra', 'relatorio', 'config'].forEach(id => {
+            const btn = document.getElementById(`nav-btn-${id}`); if(btn) { btn.classList.remove('text-amber-400'); btn.classList.add('text-slate-400'); } });  const ativoBtn = document.getElementById(`nav-btn-${abaId}`);
+        if(ativoBtn) {
+            ativoBtn.classList.remove('text-slate-400');
+            ativoBtn.classList.add('text-amber-400');
         }
-    });
 
-    const ativoBtn = document.getElementById(`nav-btn-${abaId}`);
-    if(ativoBtn) {
-        ativoBtn.classList.remove('text-slate-400');
-        ativoBtn.classList.add('text-amber-400');
+        const titles = {
+            menu: "Menu Principal",
+            orcamento: "Painel de Documentos",
+            clientes: "Clientes Salvos",
+            agenda: "Agenda & Serviços",
+            materiais: "Catálogo de Materiais",
+            'mao-obra': "Catálogo de Mão de Obra",
+            relatorio: "Serviços Executados",
+            config: "Empresa & Ajustes"
+        };
+        const subHeader = document.getElementById('header-subtitle');
+        if (subHeader) subHeader.innerText = titles[abaId] || "Gestor Serviços";
+        
+        if (abaId === 'clientes') renderizarClientesCadastrados();
+        if (abaId === 'relatorio') carregarRelatorioServicos();
+    } catch(e) {
+        console.error("Erro na navegação:", e);
     }
-
-    const titles = {
-        menu: "Menu Principal",
-        orcamento: "Painel de Documentos",
-        clientes: "Clientes Salvos",
-        agenda: "Agenda & Serviços",
-        materiais: "Catálogo de Materiais",
-        'mao-obra': "Catálogo de Mão de Obra",
-        relatorio: "Serviços Executados",
-        config: "Empresa & Ajustes"
-    };
-    const subHeader = document.getElementById('header-subtitle');
-    if (subHeader) subHeader.innerText = titles[abaId] || "Gestor Serviços";
-    
-    if (abaId === 'clientes') renderizarClientesCadastrados();
-    if (abaId === 'relatorio') carregarRelatorioServicos();
 }
 
-// GESTÃO DE CLIENTES SALVOS
+// GESTÃO DE CLIENTES
 function abrirModalNovoCliente() {
     document.getElementById('cad-cli-nome').value = '';
     document.getElementById('cad-cli-fone').value = '';
@@ -173,10 +169,7 @@ function salvarClienteCadastrado() {
     const fone = document.getElementById('cad-cli-fone').value.trim();
     const endereco = document.getElementById('cad-cli-endereco').value.trim();
 
-    if (!nome) {
-        alert("Preencha o nome do cliente.");
-        return;
-    }
+    if (!nome) return alert("Preencha o nome do cliente.");
 
     clientesSalvos.push({ id: Date.now(), nome, fone, endereco });
     localStorage.setItem('gestor_clientes_salvos', JSON.stringify(clientesSalvos));
@@ -212,8 +205,8 @@ function renderizarClientesCadastrados() {
                     <p class="text-slate-400"><i class="fa-solid fa-location-dot mr-1"></i> ${c.endereco || 'Sem endereço'}</p>
                 </div>
                 <div class="flex space-x-2">
-                    <button onclick="usarClienteNoOrcamento('${c.nome}', '${c.fone}', '${c.endereco}')" class="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold px-2 py-1.5 rounded-lg" title="Usar no Documento"><i class="fa-solid fa-file-arrow-up"></i></button>
-                    <button onclick="removerClienteSalvo(${c.id})" class="text-red-400 hover:text-red-300 p-1.5"><i class="fa-solid fa-trash"></i></button>
+                    <button onclick="usarClienteNoOrcamento('${c.nome}', '${c.fone}', '${c.endereco}')" class="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold px-2 py-1.5 rounded-lg"><i class="fa-solid fa-file-arrow-up"></i></button>
+                    <button onclick="removerClienteSalvo(${c.id})" class="text-red-400 p-1.5"><i class="fa-solid fa-trash"></i></button>
                 </div>
             </div>
         `;
@@ -225,7 +218,6 @@ function usarClienteNoOrcamento(nome, fone, endereco) {
     document.getElementById('cli-fone').value = fone;
     document.getElementById('cli-endereco').value = endereco;
     mudarAba('orcamento');
-    alert(`Cliente ${nome} selecionado para o documento!`);
 }
 
 function abrirModalSelecionarClienteSalvo() {
@@ -240,12 +232,11 @@ function abrirModalSelecionarClienteSalvo() {
             container.innerHTML += `
                 <div onclick="selecionarClienteModal('${c.nome}', '${c.fone}', '${c.endereco}')" class="bg-slate-900 border border-slate-700 p-2.5 rounded-xl cursor-pointer hover:border-amber-500 transition text-xs">
                     <p class="font-bold text-amber-400">${c.nome}</p>
-                    <p class="text-slate-300">${c.fone || ''} - ${c.endereco || ''}</p>
+                    <p class="text-slate-300">${c.fone \vert{}\vert{} ''} -${c.endereco || ''}</p>
                 </div>
             `;
         });
     }
-
     document.getElementById('modal-selecionar-cliente').classList.remove('hidden');
     document.getElementById('modal-selecionar-cliente').classList.add('flex');
 }
@@ -301,7 +292,7 @@ async function importarContatoAgenda() {
                 alert("Contato importado!");
             }
         } else {
-            alert("Utilize o teclado ou digite os dados do cliente.");
+            alert("Digite os dados do cliente manualmente.");
         }
     } catch (e) { alert("Insira os dados manualmente."); }
 }
@@ -469,4 +460,187 @@ function atualizarTabelaOrcamento() {
     const descValorInput = parseFloat(document.getElementById('desc-valor').value) || 0;
     let descontoCalculado = descTipo === 'rs' ? descValorInput : (subtotalGeral * descValorInput) / 100;
     let totalFinal = subtotalGeral - descontoCalculado;
-    if (totalFinal < 0) total
+    if (totalFinal < 0) totalFinal = 0;
+
+    document.getElementById('subtotal-geral').innerText = `R$ ${subtotalGeral.toFixed(2)}`; document.getElementById('desconto-geral').innerText = `- R$ ${descontoCalculado.toFixed(2)}`; document.getElementById('total-geral').innerText = `R$ ${totalFinal.toFixed(2)}`; }  // Agenda function mudarFiltroAgenda(filtro) { filtroAtualAgenda = filtro; ['agenda', 'espera', 'executados'].forEach(f => { const btn = document.getElementById(`filtro-btn-${f}`);
+        if(btn) btn.className = f === filtro ? "flex-1 py-2 rounded-md bg-amber-500 text-slate-900 transition font-bold" : "flex-1 py-2 rounded-md text-slate-400 transition";
+    });
+    renderizarCompromissos();
+}
+
+function abrirModalServicoStatus() {
+    document.getElementById('srv-titulo').value = '';
+    document.getElementById('srv-cliente').value = '';
+    document.getElementById('srv-fone').value = '';
+    document.getElementById('srv-endereco').value = '';
+    document.getElementById('modal-servico-status').classList.remove('hidden');
+    document.getElementById('modal-servico-status').classList.add('flex');
+}
+
+function fecharModalServicoStatus() {
+    document.getElementById('modal-servico-status').classList.remove('flex');
+    document.getElementById('modal-servico-status').classList.add('hidden');
+}
+
+function salvarNovoServicoAgenda() {
+    const titulo = document.getElementById('srv-titulo').value;
+    const cliente = document.getElementById('srv-cliente').value;
+    const fone = document.getElementById('srv-fone').value;
+    const data = document.getElementById('srv-data').value;
+    const endereco = document.getElementById('srv-endereco').value;
+    const status = document.getElementById('srv-status').value;
+
+    if (!titulo || !cliente) return alert("Preencha título e cliente.");
+
+    const novoServico = { id: Date.now(), titulo, cliente, fone, data, endereco, status };
+    compromissos.push(novoServico);
+    localStorage.setItem('gestor_compromissos', JSON.stringify(compromissos));
+    if (status === 'executados') registrarNoRelatorio(novoServico);
+
+    fecharModalServicoStatus();
+    renderizarCompromissos();
+}
+
+function registrarNoRelatorio(servico) {
+    let valorEstimado = 150.00;
+    historicoServicosFeitos.push({
+        id: servico.id,
+        titulo: servico.titulo,
+        cliente: servico.cliente,
+        data: servico.data,
+        valor: valorEstimado,
+        itens: [...itensOrcamento]
+    });
+    localStorage.setItem('gestor_historico_feitos', JSON.stringify(historicoServicosFeitos));
+}
+
+function carregarRelatorioServicos() {
+    const container = document.getElementById('lista-relatorio-servicos');
+    const totalGeralEl = document.getElementById('faturamento-total-geral');
+    if (!container) return;
+    container.innerHTML = '';
+    let somaTotal = 0;
+
+    if (historicoServicosFeitos.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500 text-center py-4 italic">Nenhum serviço contabilizado.</p>`;
+        if(totalGeralEl) totalGeralEl.innerText = 'R$ 0,00';
+        return;
+    }
+
+    historicoServicosFeitos.forEach((servico, index) => {
+        let subServico = servico.valor || 0;
+        if (servico.itens && servico.itens.length > 0) {
+            subServico = servico.itens.reduce((acc, i) => acc + (i.qtd * i.valor), 0);
+        }
+        somaTotal += subServico;
+        container.innerHTML += `
+            <div class="bg-slate-900 border border-slate-700/60 p-3 rounded-xl space-y-1 text-xs">
+                <div class="flex justify-between items-center"><p class="font-bold text-emerald-400 text-sm">${servico.titulo}</p><button onclick="removerServicoRelatorio(${index})" class="text-red-400 p-1"><i class="fa-solid fa-trash"></i></button></div>
+                <p class="text-slate-200"><strong>Cliente:</strong> ${servico.cliente} \vert{}${servico.data || ''}</p>
+                <p class="text-amber-400 font-bold text-right">R$ ${subServico.toFixed(2)}</p>
+            </div>
+        `;
+    });
+    if(totalGeralEl) totalGeralEl.innerText = `R$ ${somaTotal.toFixed(2)}`;
+}
+
+function removerServicoRelatorio(index) {
+    historicoServicosFeitos.splice(index, 1);
+    localStorage.setItem('gestor_historico_feitos', JSON.stringify(historicoServicosFeitos));
+    carregarRelatorioServicos();
+}
+
+function removerCompromisso(id) {
+    compromissos = compromissos.filter(c => c.id !== id);
+    localStorage.setItem('gestor_compromissos', JSON.stringify(compromissos));
+    renderizarCompromissos();
+}
+
+function renderizarCompromissos() {
+    const container = document.getElementById('lista-compromissos');
+    if (!container) return;
+    container.innerHTML = '';
+    const filtrados = compromissos.filter(c => c.status === filtroAtualAgenda);
+    if (filtrados.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500 text-center py-4 italic">Nenhum registro.</p>`;
+        return;
+    }
+    filtrados.forEach(c => {
+        container.innerHTML += `
+            <div class="bg-slate-900 border border-slate-700/60 p-3 rounded-xl space-y-1 text-xs">
+                <div class="flex justify-between items-center"><p class="font-bold text-amber-400 text-sm">${c.titulo}</p><button onclick="removerCompromisso(${c.id})" class="text-red-400 p-1"><i class="fa-solid fa-trash"></i></button></div>
+                <p class="text-slate-200"><strong>Cliente:</strong> ${c.cliente} (${c.fone || ''})</p>
+                <p class="text-slate-400">${c.endereco \vert{}\vert{} ''} -${c.data || ''}</p>
+            </div>
+        `;
+    });
+}
+
+function criarElementoDocumentoParaRender() {
+    const nomeCliente = document.getElementById('cli-nome').value || "Cliente";
+    const foneCliente = document.getElementById('cli-fone').value || "";
+    const endCliente = document.getElementById('cli-endereco').value || "";
+    const tipoDoc = document.getElementById('doc-tipo').value;
+    
+    const empNome = localStorage.getItem('emp_nome') || "Gestor de Serviços";
+    const empDoc = localStorage.getItem('emp_doc') || "";
+    const empFone = localStorage.getItem('emp_fone') || "";
+    const linkQr = localStorage.getItem('emp_link_qr') || "";
+    const formaPagto = document.getElementById('pagamento-forma').value;
+
+    let subtotal = 0;
+    let htmlItens = '';
+    itensOrcamento.forEach(i => {
+        let sub = i.qtd * i.valor;
+        subtotal += sub;
+        htmlItens += `<tr><td style="padding: 8px; border-bottom: 1px solid #ddd;">${i.desc}</td><td style="padding: 8px; border-bottom: 1px solid #ddd; text-align:center;">${i.qtd}</td><td style="padding: 8px; border-bottom: 1px solid #ddd; text-align:right;">R$ ${i.valor.toFixed(2)}</td><td style="padding: 8px; border-bottom: 1px solid #ddd; text-align:right;">R$ ${sub.toFixed(2)}</td></tr>`;
+    });
+
+    const descTipo = document.getElementById('desc-tipo').value;
+    const descValInput = parseFloat(document.getElementById('desc-valor').value) || 0;
+    let descCalc = descTipo === 'rs' ? descValInput : (subtotal * descValInput) / 100;
+    let totalFinal = subtotal - descCalc;
+    if (totalFinal < 0) totalFinal = 0;
+
+    let assinaturaTecnicoImg = canvasAssinatura ? canvasAssinatura.toDataURL('image/png') : '';
+    let logoHtml = logoBase64Empresa ? `<img src="${logoBase64Empresa}" style="max-height: 55px; max-width: 130px; float: right; object-fit: contain;">` : '';
+    let qrHtml = linkQr ? `<div style="margin-top: 15px; text-align: center;"><p style="font-size: 10px; color: #555;">Acesse:</p><img src="https://api.qrserver.com/v1/create-qr-code/?size=70x70&data=${encodeURIComponent(linkQr)}" style="width: 60px; height: 60px;"></div>` : '';
+
+    let htmlFotos = '';
+    if (fotosServico.length > 0) {
+        let fotosImgs = '';
+        fotosServico.forEach(f => { fotosImgs += `<img src="${f}" style="width: 100px; height: 100px; object-fit: cover; border-radius: 4px; border: 1px solid #ccc;">`; });
+        htmlFotos = `<div style="margin-top: 15px;"><p style="font-size: 11px; font-weight: bold; color: #333; margin-bottom: 5px;">Fotos:</p><div style="display: flex; gap: 8px; flex-wrap: wrap;">${fotosImgs}</div></div>`;
+    }
+
+    const containerDoc = document.createElement('div');
+    containerDoc.style.position = 'fixed';
+    containerDoc.style.top = '0';
+    containerDoc.style.left = '0';
+    containerDoc.style.width = '600px';
+    containerDoc.style.backgroundColor = '#ffffff';
+    containerDoc.style.color = '#111111';
+    containerDoc.style.padding = '24px';
+    containerDoc.style.zIndex = '99999';
+    containerDoc.style.borderRadius = '8px';
+
+    containerDoc.innerHTML = `
+        <div style="font-family: Arial, sans-serif;">
+            ${logoHtml}
+            <h2 style="color: #d97706; margin: 0 0 4px 0; font-size: 18px;">${empNome}</h2>
+            <p style="font-size: 11px; color: #555; margin: 0;">CNPJ/CPF: ${empDoc} \vert{} Fone:${empFone}</p>
+            <hr style="border: 1px solid #d97706; margin: 10px 0;">
+            <div style="background: #f3f4f6; padding: 8px; border-radius: 6px; display: flex; justify-content: space-between;">
+                <h3 style="margin: 0; font-size: 14px; color: #1e293b;">${tipoDoc}</h3>
+                <span style="font-size: 11px;">Data: ${document.getElementById('cli-data').value}</span>
+            </div>
+            <div style="margin: 10px 0; font-size: 12px; background: #fafafa; padding: 8px; border-radius: 6px; border: 1px solid #eee;">
+                <p style="margin: 2px 0;"><strong>Cliente:</strong> ${nomeCliente}</p>
+                <p style="margin: 2px 0;"><strong>Fone:</strong> ${foneCliente}</p>
+                <p style="margin: 2px 0;"><strong>Endereço:</strong> ${endCliente}</p>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px;">
+                <thead><tr style="background: #e5e7eb;"><th style="padding: 6px; text-align:left;">Descrição</th><th style="padding: 6px; text-align:center;">Qtd</th><th style="padding: 6px; text-align:right;">Unit.</th><th style="padding: 6px; text-align:right;">Total</th></tr></thead>
+                <tbody>${htmlItens}</tbody>
+            </table>
+            <div style="margin-top: 15px; text-align: right; font-
