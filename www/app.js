@@ -3,7 +3,6 @@ async function enviarDiretoWhatsApp(tipo) {
     if (typeof itensOrcamento !== 'undefined' && itensOrcamento.length === 0) return alert("Adicione itens ao documento.");
     
     const nome = document.getElementById('cli-nome') ? document.getElementById('cli-nome').value || "Cliente" : "Cliente";
-    const fone = document.getElementById('cli-fone') ? document.getElementById('cli-fone').value.replace(/\D/g, '') : '';
     const container = criarElementoDocumentoParaRender();
     document.body.appendChild(container);
 
@@ -12,16 +11,31 @@ async function enviarDiretoWhatsApp(tipo) {
         document.body.removeChild(container);
 
         if (tipo === 'img') {
-            const link = document.createElement('a');
-            link.download = `Documento_${nome.replace(/\s+/g, '_')}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            
-            alert("Imagem salva no celular! O WhatsApp será aberto para você anexá-la na conversa.");
-            setTimeout(() => {
-                const urlWpp = fone ? `https://api.whatsapp.com/send?phone=${fone}` : `https://api.whatsapp.com/send`;
-                window.open(urlWpp, '_blank');
-            }, 600);
+            canvas.toBlob(async (blob) => {
+                const arquivo = new File([blob], `Documento_${nome.replace(/\s+/g, '_')}.png`, { type: 'image/png' });
+                
+                // Dispara o compartilhamento direto nativo do sistema
+                if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
+                    try {
+                        await navigator.share({
+                            files: [arquivo],
+                            title: 'Documento de Serviço',
+                            text: `Olá ${nome}, segue a imagem do serviço realizado.`
+                        });
+                        return;
+                    } catch (err) {
+                        if (err.name !== 'AbortError') console.error("Erro no compartilhamento:", err);
+                        return;
+                    }
+                }
+                
+                // Fallback se o navegador/sistema bloquear o compartilhamento direto de arquivos
+                alert("O seu dispositivo não permitiu o envio direto. O arquivo será baixado.");
+                const link = document.createElement('a');
+                link.download = `Documento_${nome.replace(/\s+/g, '_')}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }, 'image/png');
         } else {
             if (!window.jspdf || !window.jspdf.jsPDF) {
                 alert("Biblioteca de PDF não carregada.");
@@ -48,17 +62,31 @@ async function enviarDiretoWhatsApp(tipo) {
                 heightLeft -= pageHeight;
             }
 
+            // Gera o Blob do PDF para envio direto
+            const pdfBlob = pdf.output('blob');
+            const arquivoPdf = new File([pdfBlob], `Documento_${nome.replace(/\s+/g, '_')}.pdf`, { type: 'application/pdf' });
+
+            if (navigator.canShare && navigator.canShare({ files: [arquivoPdf] })) {
+                try {
+                    await navigator.share({
+                        files: [arquivoPdf],
+                        title: 'Orçamento / Nota de Serviço',
+                        text: `Olá ${nome}, segue o documento em PDF referente ao atendimento.`
+                    });
+                    return;
+                } catch (err) {
+                    if (err.name !== 'AbortError') console.error("Erro no compartilhamento:", err);
+                    return;
+                }
+            }
+
+            // Fallback se o sistema bloquear
+            alert("O seu dispositivo não permitiu o envio direto. O arquivo será baixado.");
             pdf.save(`Documento_${nome.replace(/\s+/g, '_')}.pdf`);
-            
-            alert("PDF salvo em Downloads! O WhatsApp será aberto para você anexar o documento.");
-            setTimeout(() => {
-                const urlWpp = fone ? `https://api.whatsapp.com/send?phone=${fone}` : `https://api.whatsapp.com/send`;
-                window.open(urlWpp, '_blank');
-            }, 600);
         }
     } catch (error) {
         if (container.parentNode) document.body.removeChild(container);
-        console.error("Erro no envio:", error);
-        alert("Ocorreu um erro ao processar o arquivo.");
+        console.error("Erro no envio direto:", error);
+        alert("Ocorreu um erro ao processar o arquivo para envio.");
     }
 }
