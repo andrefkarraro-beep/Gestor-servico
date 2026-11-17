@@ -33,7 +33,7 @@ let catalogoMaoObra = [
     { desc: "Ponto Adicional de Tomada / Luz (Infraestrutura)", valor: 80.00 }
 ];
 
-// Inicialização Totalmente Blindada para garantir funcionamento dos botões
+// Inicialização Totalmente Blindada
 document.addEventListener('DOMContentLoaded', () => {
     try { compromissos = JSON.parse(localStorage.getItem('gestor_compromissos') || '[]'); } catch(e) { compromissos = []; }
     try { clientesSalvos = JSON.parse(localStorage.getItem('gestor_clientes_salvos') || '[]'); } catch(e) { clientesSalvos = []; }
@@ -45,8 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const cliData = document.getElementById('cli-data');
         const srvData = document.getElementById('srv-data');
         const hoje = new Date().toISOString().split('T')[0];
-        if(cliData) cliData.value = hoje;
-        if(srvData) srvData.value = hoje;
+        if(cliData && !cliData.value) cliData.value = hoje;
+        if(srvData && !srvData.value) srvData.value = hoje;
     } catch(e) {}
 
     try { carregarCatalogosNaTela(); } catch(e) {}
@@ -58,7 +58,6 @@ document.addEventListener('DOMContentLoaded', () => {
     try { carregarRelatorioServicos(); } catch(e) {}
     try { inicializarCanvasAssinatura(); } catch(e) {}
 
-    // Garante abertura correta na aba menu
     try {
         mudarAba('menu');
     } catch(e) {
@@ -770,7 +769,7 @@ function enviarWhatsAppTexto() {
     window.open(url, '_blank');
 }
 
-// COMPARTILHAMENTO DIRETO NATIVO PARA O WHATSAPP
+// COMPARTILHAMENTO DIRETO NATIVO PARA O WHATSAPP (BLINDADO)
 async function enviarDiretoWhatsApp(tipo) {
     fecharModalWhatsApp();
     if (typeof itensOrcamento !== 'undefined' && itensOrcamento.length === 0) return alert("Adicione itens ao documento.");
@@ -785,6 +784,7 @@ async function enviarDiretoWhatsApp(tipo) {
 
         if (tipo === 'img') {
             canvas.toBlob(async (blob) => {
+                if (!blob) return alert("Erro ao converter imagem.");
                 const arquivo = new File([blob], `Documento_${nome.replace(/\s+/g, '_')}.png`, { type: 'image/png' });
                 
                 if (navigator.canShare && navigator.canShare({ files: [arquivo] })) {
@@ -801,10 +801,12 @@ async function enviarDiretoWhatsApp(tipo) {
                     }
                 }
                 
+                // Fallback automático se a WebView não suportar compartilhamento de arquivos
                 const link = document.createElement('a');
                 link.download = `Documento_${nome.replace(/\s+/g, '_')}.png`;
                 link.href = canvas.toDataURL('image/png');
                 link.click();
+                alert("Imagem salva no aparelho!");
             }, 'image/png');
         } else {
             if (!window.jspdf || !window.jspdf.jsPDF) {
@@ -845,3 +847,35 @@ async function enviarDiretoWhatsApp(tipo) {
                     return;
                 } catch (err) {
                     if (err.name !== 'AbortError') console.error("Erro no compartilhamento:", err);
+                    return;
+                }
+            }
+
+            // Fallback automático para PDF
+            pdf.save(`Documento_${nome.replace(/\s+/g, '_')}.pdf`);
+            alert("PDF salvo no aparelho!");
+        }
+    } catch (error) {
+        if (container.parentNode) document.body.removeChild(container);
+        console.error("Erro no envio direto:", error);
+        alert("Ocorreu um erro ao processar o arquivo para envio.");
+    }
+}
+
+function compartilharEmail() {
+    if (typeof itensOrcamento !== 'undefined' && itensOrcamento.length === 0) return alert("Adicione itens ao documento.");
+    const nome = document.getElementById('cli-nome') ? document.getElementById('cli-nome').value || "Cliente" : "Cliente";
+    let subtotal = itensOrcamento.reduce((acc, i) => acc + (i.qtd * i.valor), 0);
+    
+    const assunto = encodeURIComponent(`Documento de Serviço - ${nome}`);
+    const corpo = encodeURIComponent(`Olá ${nome},\n\nSegue o resumo do orçamento/serviço realizado.\nValor Total: R$ ${subtotal.toFixed(2)}.\n\nAtenciosamente.`);
+    
+    window.location.href = `mailto:?subject=${assunto}&body=${corpo}`;
+}
+
+function salvarApiKey() {
+    const key = document.getElementById('input-api-key') ? document.getElementById('input-api-key').value.trim() : '';
+    if (!key) return alert("Insira uma chave.");
+    localStorage.setItem('gemini_api_key', key);
+    alert("Chave salva!");
+}
