@@ -1,106 +1,68 @@
-// 1. COMPARTILHAR WHATSAPP COM TEXTO E OPÇÃO DE ANEXO RÁPIDO
-function abrirModalCompartilharWhatsApp() {
-    if (typeof itensOrcamento !== 'undefined' && itensOrcamento.length === 0) return alert("Adicione itens ao documento.");
-    document.getElementById('modal-whatsapp').classList.remove('hidden');
-    document.getElementById('modal-whatsapp').classList.add('flex');
-}
+let itensOrcamento = [];
+let fotosServico = [];
+let compromissos = [];
+let clientesSalvos = [];
+let historicoServicosFeitos = [];
+let filtroAtualAgenda = 'agenda';
+let logoBase64Empresa = '';
+let canvasAssinatura, ctxAssinatura, desenhando = false;
 
-function fecharModalWhatsApp() {
-    document.getElementById('modal-whatsapp').classList.remove('flex');
-    document.getElementById('modal-whatsapp').classList.add('hidden');
-}
+let catalogoMateriais = [
+    { desc: "Cabo Flexível 2,5mm² (rolo 100m)", valor: 145.00 },
+    { desc: "Cabo Flexível 4,0mm² (rolo 100m)", valor: 225.00 },
+    { desc: "Cabo Flexível 6,0mm² (rolo 100m)", valor: 340.00 },
+    { desc: "Disjuntor Monofásico 10A a 32A", valor: 22.00 },
+    { desc: "Disjuntor Bipolar 40A a 63A", valor: 65.00 },
+    { desc: "Disjuntor DR 40A / 63A (30mA)", valor: 110.00 },
+    { desc: "Dispositivo DPS 20kA / 40kA", valor: 55.00 },
+    { desc: "Tomada 2P+T 10A / 20A Completa", valor: 18.00 },
+    { desc: "Interruptor Simples + Tomada", valor: 25.00 },
+    { desc: "Quadro de Distribuição (QGBT) 12/16 Pinos", valor: 95.00 },
+    { desc: "Fita Isolante Profissional 20m", valor: 12.00 }
+];
 
-function enviarWhatsAppTexto() {
-    fecharModalWhatsApp();
-    const fone = document.getElementById('cli-fone') ? document.getElementById('cli-fone').value.replace(/\D/g, '') : '';
-    const nome = document.getElementById('cli-nome') ? document.getElementById('cli-nome').value || "Cliente" : "Cliente";
-    let subtotal = itensOrcamento.reduce((acc, i) => acc + (i.qtd * i.valor), 0);
-    
-    let texto = `Olá *${nome}*, segue o resumo do seu atendimento:\n\n`;
-    itensOrcamento.forEach(i => { 
-        texto += `• ${i.desc} (${i.qtd}x) - R$ ${(i.qtd * i.valor).toFixed(2)}\n`; 
-    });
-    texto += `\n*TOTAL: R$ ${subtotal.toFixed(2)}*`;
-    
-    const url = fone ? `https://api.whatsapp.com/send?phone=${fone}&text=${encodeURIComponent(texto)}` : `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
-    window.open(url, '_blank');
-}
+let catalogoMaoObra = [
+    { desc: "Instalação de Disjuntor / DR / DPS", valor: 120.00 },
+    { desc: "Montagem e Cabeamento de Quadro Elétrico (QGBT)", valor: 450.00 },
+    { desc: "Passagem de Fiação por Eletroduto (metro)", valor: 15.00 },
+    { desc: "Instalação de Tomada / Interruptor", valor: 35.00 },
+    { desc: "Instalação de Chuveiro Elétrico", valor: 90.00 },
+    { desc: "Instalação de Luminária / Plafon / Spot", valor: 50.00 },
+    { desc: "Laudo de Inspeção e Termografia", valor: 350.00 },
+    { desc: "Visita Técnica e Diagnóstico de Falha", valor: 150.00 },
+    { desc: "Ponto Adicional de Tomada / Luz (Infraestrutura)", valor: 80.00 }
+];
 
-// 2. ENVIO DIRETO DE PDF/IMAGEM OTIMIZADO PARA APK (SALVA E ABRE O WHATSAPP INSTANTANEAMENTE)
-async function enviarDiretoWhatsApp(tipo) {
-    fecharModalWhatsApp();
-    if (typeof itensOrcamento !== 'undefined' && itensOrcamento.length === 0) return alert("Adicione itens ao documento.");
-    
-    const nome = document.getElementById('cli-nome') ? document.getElementById('cli-nome').value || "Cliente" : "Cliente";
-    const fone = document.getElementById('cli-fone') ? document.getElementById('cli-fone').value.replace(/\D/g, '') : '';
-    const container = criarElementoDocumentoParaRender();
-    document.body.appendChild(container);
-
+// INICIALIZAÇÃO ULTRA-SEGURA (Impossível travar a tela preta)
+window.onload = function() {
     try {
-        const canvas = await html2canvas(container, { scale: 2, useCORS: true, logging: false });
-        document.body.removeChild(container);
-
-        if (tipo === 'img') {
-            const link = document.createElement('a');
-            link.download = `Documento_${nome.replace(/\s+/g, '_')}.png`;
-            link.href = canvas.toDataURL('image/png');
-            link.click();
-            
-            alert("Imagem salva! O WhatsApp será aberto. Basta tocar no clipe (📎) e selecionar a imagem.");
-            setTimeout(() => {
-                const urlWpp = fone ? `https://api.whatsapp.com/send?phone=${fone}` : `https://api.whatsapp.com/send`;
-                window.open(urlWpp, '_blank');
-            }, 500);
-        } else {
-            if (!window.jspdf || !window.jspdf.jsPDF) {
-                alert("Biblioteca de PDF não carregada.");
-                return;
-            }
-
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF('p', 'mm', 'a4');
-            const imgData = canvas.toDataURL('image/png');
-            const imgWidth = 190;
-            const pageHeight = 295;
-            const imgHeight = (canvas.height * imgWidth) / canvas.width;
-            
-            let heightLeft = imgHeight;
-            let position = 10;
-
-            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-            heightLeft -= pageHeight;
-
-            while (heightLeft >= 0) {
-                position = heightLeft - imgHeight;
-                pdf.addPage();
-                pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-            }
-
-            pdf.save(`Documento_${nome.replace(/\s+/g, '_')}.pdf`);
-            
-            alert("PDF gerado com sucesso! O WhatsApp será aberto. Toque no clipe (📎) > Documentos e selecione o PDF.");
-            setTimeout(() => {
-                const urlWpp = fone ? `https://api.whatsapp.com/send?phone=${fone}` : `https://api.whatsapp.com/send`;
-                window.open(urlWpp, '_blank');
-            }, 500);
-        }
-    } catch (error) {
-        if (container.parentNode) document.body.removeChild(container);
-        console.error("Erro no envio:", error);
-        alert("Ocorreu um erro ao processar o arquivo.");
+        compromissos = JSON.parse(localStorage.getItem('gestor_compromissos') || '[]');
+        clientesSalvos = JSON.parse(localStorage.getItem('gestor_clientes_salvos') || '[]');
+        historicoServicosFeitos = JSON.parse(localStorage.getItem('gestor_historico_feitos') || '[]');
+        logoBase64Empresa = localStorage.getItem('gestor_logo_b64') || '';
+    } catch(e) {
+        console.error("Erro ao carregar dados locais", e);
     }
-}
 
-// 3. COMPARTILHAR POR E-MAIL SEGURO
-function compartilharEmail() {
-    if (typeof itensOrcamento !== 'undefined' && itensOrcamento.length === 0) return alert("Adicione itens ao documento.");
-    const nome = document.getElementById('cli-nome') ? document.getElementById('cli-nome').value || "Cliente" : "Cliente";
-    let subtotal = itensOrcamento.reduce((acc, i) => acc + (i.qtd * i.valor), 0);
-    
-    const assunto = encodeURIComponent(`Documento de Serviço - ${nome}`);
-    const corpo = encodeURIComponent(`Olá ${nome},\n\nSegue o resumo do orçamento/serviço realizado.\nValor Total: R$ ${subtotal.toFixed(2)}.\n\nAtenciosamente.`);
-    
-    // Dispara o aplicativo de e-mail padrão do celular
-    window.location.href = `mailto:?subject=${assunto}&body=${corpo}`;
-}
+    // Configura data de hoje se existir os campos
+    try {
+        const hoje = new Date().toISOString().split('T')[0];
+        const cliData = document.getElementById('cli-data');
+        const srvData = document.getElementById('srv-data');
+        if(cliData) cliData.value = hoje;
+        if(srvData) srvData.value = hoje;
+    } catch(e) {}
+
+    // Executa as funções de tela com segurança isolada
+    try { carregarCatalogosNaTela(); } catch(e) {}
+    try { carregarSelectsModal(); } catch(e) {}
+    try { carregarApiKeySalva(); } catch(e) {}
+    try { carregarDadosEmpresaNaTela(); } catch(e) {}
+    try { renderizarCompromissos(); } catch(e) {}
+    try { renderizarClientesCadastrados(); } catch(e) {}
+    try { carregarRelatorioServicos(); } catch(e) {}
+    try { inicializarCanvasAssinatura(); } catch(e) {}
+
+    // Garante que o menu principal apareça na hora
+    mudarAba('menu');
+};
