@@ -33,7 +33,7 @@ let catalogoMaoObra = [
     { desc: "Ponto Adicional de Tomada / Luz (Infraestrutura)", valor: 80.00 }
 ];
 
-// Inicialização Totalmente Segura para evitar travamento de botões
+// Inicialização Totalmente Blindada
 document.addEventListener('DOMContentLoaded', () => {
     try { compromissos = JSON.parse(localStorage.getItem('gestor_compromissos') || '[]'); } catch(e) { compromissos = []; }
     try { clientesSalvos = JSON.parse(localStorage.getItem('gestor_clientes_salvos') || '[]'); } catch(e) { clientesSalvos = []; }
@@ -57,6 +57,14 @@ document.addEventListener('DOMContentLoaded', () => {
     try { renderizarClientesCadastrados(); } catch(e) {}
     try { carregarRelatorioServicos(); } catch(e) {}
     try { inicializarCanvasAssinatura(); } catch(e) {}
+
+    // Força a exibição inicial correta do menu (evita tela preta)
+    try {
+        mudarAba('menu');
+    } catch(e) {
+        const abaMenu = document.getElementById('aba-menu');
+        if(abaMenu) abaMenu.classList.remove('hidden');
+    }
 });
 
 function carregarApiKeySalva() {
@@ -106,7 +114,7 @@ function limparAssinaturaTecnico() {
     }
 }
 
-// Navegação entre Abas
+// Navegação entre Abas com blindagem total
 function mudarAba(abaId) {
     try {
         document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
